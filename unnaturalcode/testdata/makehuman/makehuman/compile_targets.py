@@ -39,8 +39,8 @@ TODO
 
 import sys
 sys.path = [".", "./core", "./lib"] + sys.path
-import makehuman
-import algos3d
+import makehuman.makehuman
+import core.algos3d
 import numpy as np
 import os
 import zipfile

@@ -34,11 +34,11 @@ for root, subdirs, files in os.walk(walk_dir):
                 f_content = f.read()
                 lexed = pythonSource.pythonSource(f_content)
                 scrubbed = lexed.scrubbed()
-                toks = [bytes(tok.val).decode('utf-8', 'replace') for tok in scrubbed]
+                toks = [bytes(tok.val + ":" + tok.type).decode('utf-8', 'replace') for tok in scrubbed]
                 if fileish not in datas:
                     datas[fileish] = dict()
                 datas[fileish][version] = toks
 
-outfile = open('lexedversions.json', 'wb')
+outfile = open('lexedversionstypes.json', 'wb')
 json.dump(datas, outfile)  
 

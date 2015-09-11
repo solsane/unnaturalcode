@@ -64,6 +64,10 @@ def runFile(q,path):
         exec(compile(open(virtualEnvActivate, "rb").read(), virtualEnvActivate, 'exec'), dict(__file__=virtualEnvActivate))
       else:
         execfile(virtualEnvActivate, dict(__file__=virtualEnvActivate))
+    parent = path
+    while len(parent) > 1:
+        parent = os.path.dirname(parent)
+        sys.path = sys.path + [parent]
     try:
         runpy.run_path(path)
     except SyntaxError as se:

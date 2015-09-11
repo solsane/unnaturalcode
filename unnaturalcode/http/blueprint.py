@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+
 # Copyright (C) 2014  Eddie Antonio Santos
 #
 # This program is free software: you can redistribute it and/or modify
@@ -26,11 +27,13 @@ import os
 
 from api_utils import get_corpus_or_404, get_string_content
 from flask import Flask, make_response, jsonify, Blueprint
-from flask.ext.cors import cross_origin
+from flask.ext.cors import cross_origin, CORS
 from token_fmt import parse_tokens
 
 
 app = unnaturalhttp = Blueprint('unnaturalcode-http', __name__)
+cors = CORS(app)
+
 
 #/ ROUTES /####################################################################
 ###############################################################################

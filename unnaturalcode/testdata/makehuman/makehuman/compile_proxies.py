@@ -42,10 +42,10 @@ import sys
 sys.path = ["./core", "./lib", "./shared", "./apps"] + sys.path
 import os
 import fnmatch
-import proxy
-from getpath import isSubPath, getSysDataPath
+import shared.proxy
+from lib.getpath import isSubPath, getSysDataPath
 from human import Human
-import files3d
+import core.files3d
 
 def getAllFiles(rootPath, filterStrArr):
     result = [ None ]*len(filterStrArr)
