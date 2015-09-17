@@ -22,6 +22,32 @@ from unnaturalcode.mitlmCorpus import *
 from unnaturalcode.sourceModel import *
 
 @singleton
+class genericUser(object):
+  
+  def __init__(self, ngram_order=10):
+      self.homeDir = os.path.expanduser("~")
+      self.ucDir = os.getenv("UC_DATA", os.path.join(self.homeDir, ".unnaturalCode"))
+      if not os.path.exists(self.ucDir):
+        os.makedirs(self.ucDir)
+      assert os.access(self.ucDir, os.X_OK & os.R_OK & os.W_OK)
+      assert os.path.isdir(self.ucDir)
+      
+      self.readCorpus = os.path.join(self.ucDir, 'genericCorpus') 
+      self.logFilePath = os.path.join(self.ucDir, 'genericLogFile')
+      
+      self.uc = unnaturalCode(logFilePath=self.logFilePath)
+      # Oiugh... thank you, dependecy injection.
+      self.cm = mitlmCorpus(readCorpus=self.readCorpus,
+                            writeCorpus=self.readCorpus,
+                            uc=self.uc,
+                            order=ngram_order)
+      self.lm = genericSource
+      self.sm = sourceModel(cm=self.cm, language=self.lm)
+      
+  def release(self):
+      self.cm.release()
+
+@singleton
 class pyUser(object):
   
   def __init__(self, ngram_order=10):

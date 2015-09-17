@@ -110,12 +110,12 @@ class UnnaturalHTTPTestCase(unittest.TestCase):
     def test_accepting_cross_origin_requests(self):
         rv = self.app.options('/py/predict/')
         assert rv.status_code == 200
-        #assert rv.headers.get('Access-Control-Allow-Origin') == '*'
+        assert rv.headers.get('Access-Control-Allow-Origin') == '*'
 
         # Could use a for-loop, but the test errors become more vague.
         rv = self.app.options('/py/xentropy')
         assert rv.status_code == 200
-        #assert rv.headers.get('Access-Control-Allow-Origin') == '*'
+        assert rv.headers.get('Access-Control-Allow-Origin') == '*'
 
     def test_cross_entropy(self):
         # NOTE: THIS IS RELYING ON A CORPUS ALREADY EXISTING AT

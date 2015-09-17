@@ -32,8 +32,6 @@ from token_fmt import parse_tokens
 
 
 app = unnaturalhttp = Blueprint('unnaturalcode-http', __name__)
-cors = CORS(app)
-
 
 #/ ROUTES /####################################################################
 ###############################################################################
