@@ -20,6 +20,7 @@ from unnaturalcode.unnaturalCode import *
 from unnaturalcode.pythonSource import *
 from unnaturalcode.mitlmCorpus import *
 from unnaturalcode.sourceModel import *
+from unnaturalcode.genericSource import *
 
 @singleton
 class genericUser(object):

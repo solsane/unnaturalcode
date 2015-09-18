@@ -107,7 +107,7 @@ def delete_corpus(corpus_name):
     assert hasattr(corpus, 'reset'), 'Python corpus MUST have a reset method!'
     if hasattr(corpus, 'reset'):
         corpus.reset()
-
+    
     # Successful response with no content.
     return '', 204, {}
 
@@ -121,7 +121,7 @@ def tokenize(corpus_name):
     Tokenize the given string for this corpus's language.
     """
     corpus = get_corpus_or_404(corpus_name)
-    # Args... should be a file or strong
+    # Args... should be a file or string
     content = get_string_content()
     return jsonify(tokens=corpus.tokenize(content, mid_line=False))
 

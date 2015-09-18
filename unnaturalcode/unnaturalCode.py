@@ -62,6 +62,8 @@ class ucPos(tuple):
             c = args[1]
         elif isinstance(args[0], tuple):
             (l, c) = args[0]
+        elif isinstance(args[0], list):
+            (l, c) = args[0]
         else:
           raise TypeError("Bad constructor arguments.")
         return tuple.__new__(cls, (l, c))

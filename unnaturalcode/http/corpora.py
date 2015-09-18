@@ -27,26 +27,29 @@ import shutil
 
 from unnaturalcode import ucUser
 
-__all__ = ['PythonCorpus', 'CORPORA']
+from flask.json import loads as unjson
+
+__all__ = ['PythonCorpus', 'CORPORA', 'GenericCorpus']
 
 # See "On Naturalness of Software", Hindle et al. 2012
 BEHINDLE_NGRAM_ORDER = 6
 GOOD_ENOUGH_NGRAM_ORDER = 4
+CAMPBELL_NGRAM_ORDER = 10
 
 class GenericCorpus(object):
     """
     The default UnnaturalCode Python corpus.
     """
 
-    name = 'Python corpus_name [MITLM]'
+    name = 'Generic corpus_name [MITLM]'
     description = __doc__
-    language = 'Python'
+    language = 'Generic'
 
     # Get the singleton instance of the underlying Python language (source)
     # model.
     # [sigh]... this API.
-    _pyUser = ucUser.pyUser(ngram_order=GOOD_ENOUGH_NGRAM_ORDER)
-    _sourceModel = _pyUser.sm
+    _user = ucUser.genericUser(ngram_order=CAMPBELL_NGRAM_ORDER)
+    _sourceModel = _user.sm
     _lang = _sourceModel.lang()
     _mitlm = _sourceModel.cm
 
@@ -70,7 +73,7 @@ class GenericCorpus(object):
         Tokenizes the given string in the manner appropriate for this
         corpus's language model.
         """
-        return self._lang.lex(string, mid_line)
+        return self._sourceModel.lang(unjson(string))
 
     def train(self, tokens):
         """
@@ -89,8 +92,8 @@ class GenericCorpus(object):
 
         # The model *requires* at least four tokens, so pad prefixs tokens
         # with `unks` until it works.
-        if len(tokens) < 4:
-            unk_padding_size = 4 - len(tokens)
+        if len(tokens) < self.order:
+            unk_padding_size = self.order - len(tokens)
             prefix_tokens = [[None, None, None, None, '<unk>']] * unk_padding_size
         else:
             prefix_tokens = []
@@ -118,11 +121,11 @@ class GenericCorpus(object):
         # Right now, since there is only one corpus, we can just hardcode its
         # path:
         base_path = os.path.expanduser('~/.unnaturalCode/')
-        path = os.path.join(base_path, 'pyCorpus')
+        path = os.path.join(base_path, 'genericCorpus')
 
         # Ain't gotta do nothing if the file doesn't exist.
         if os.path.exists(path):
-            replacementPath = os.path.join(base_path, 'pyCorpus.bak')
+            replacementPath = os.path.join(base_path, 'genericCorpus.bak')
             shutil.move(path, replacementPath)
 
     def __del__(self):
@@ -227,5 +230,6 @@ class PythonCorpus(object):
         self._mitlm.release()
 
 CORPORA = {
-    'py': PythonCorpus()
+    'py': PythonCorpus(),
+    'generic' : GenericCorpus()
 }
