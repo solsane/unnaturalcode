@@ -117,16 +117,7 @@ class GenericCorpus(object):
     def reset(self):
         # Ask MITLM politely to relinquish its resources and halt.
         self._mitlm.release()
-
-        # Right now, since there is only one corpus, we can just hardcode its
-        # path:
-        base_path = os.path.expanduser('~/.unnaturalCode/')
-        path = os.path.join(base_path, 'genericCorpus')
-
-        # Ain't gotta do nothing if the file doesn't exist.
-        if os.path.exists(path):
-            replacementPath = os.path.join(base_path, 'genericCorpus.bak')
-            shutil.move(path, replacementPath)
+        self._user.delete()
 
     def __del__(self):
         # Ensures that MITLM has stopped.
