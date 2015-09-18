@@ -40,7 +40,7 @@ class genericUser(object):
       self.readCorpus = os.path.join(self.ucDir, 'genericCorpus') 
       self.logFilePath = os.path.join(self.ucDir, 'genericLogFile')
       self.lm = genericSource
-      self.basicSetup()
+      self.basicSetup(ngram_order)
    
   def basicSetup(self, ngram_order=10):
       self.uc = unnaturalCode(logFilePath=self.logFilePath)
@@ -57,7 +57,7 @@ class genericUser(object):
   def delete(self):
         # Ain't gotta do nothing if the file doesn't exist.
         if os.path.exists(self.readCorpus):
-            replacementPath = os.path.join(self.ucDir, 'genericCorpus.bak')
+            replacementPath = self.readCorpus + '.bak'
             shutil.move(self.readCorpus, replacementPath)
       
 
@@ -68,5 +68,5 @@ class pyUser(genericUser):
       self.readCorpus = os.path.join(self.ucDir, 'pyCorpus') 
       self.logFilePath = os.path.join(self.ucDir, 'pyLogFile')
       self.lm = pythonSource
-      self.basicSetup()
+      self.basicSetup(ngram_order)
       
