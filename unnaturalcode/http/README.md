@@ -74,7 +74,7 @@ JSON format looks like:
             "value": "\"Hello, World!\""
         },
         {   
-            "end": [ 1, 22 ],
+            "end": [ 1, 23 ],
             "start": [ 1, 22 ],
             "type": "NEWLINE",
             "value": "\n"
