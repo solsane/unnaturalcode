@@ -30,7 +30,7 @@ class genericUser(object):
       self.homeDir = os.path.expanduser("~")
       self.ucDir = os.getenv("UC_DATA", os.path.join(self.homeDir, ".unnaturalCode"))
       if not os.path.exists(self.ucDir):
-        os.mknod(self.ucDir)
+        os.makedirs(self.ucDir)
       assert os.access(self.ucDir, os.X_OK & os.R_OK & os.W_OK)
       assert os.path.isdir(self.ucDir)
   
@@ -69,7 +69,7 @@ class pyUser(genericUser):
       self.getHome()
       self.readCorpus = os.path.join(self.ucDir, 'pyCorpus') 
       if not os.path.exists(self.readCorpus):
-        os.mknod(self.readCorpus)
+        os.makedirs(self.readCorpus)
       self.logFilePath = os.path.join(self.ucDir, 'pyLogFile')
       self.lm = pythonSource
       self.basicSetup(ngram_order)
