@@ -39,7 +39,9 @@ class genericUser(object):
       
       self.readCorpus = os.path.join(self.ucDir, 'genericCorpus') 
       if not os.path.exists(self.readCorpus):
-        os.mknod(self.readCorpus)
+        with open(self.readCorpus, 'wb') as f:
+            corpus = 'for i in range ( 10 ) : <NEWLINE> <INDENT> print i\n'
+            f.write(corpus)
       self.logFilePath = os.path.join(self.ucDir, 'genericLogFile')
       self.lm = genericSource
       self.basicSetup(ngram_order)
@@ -69,7 +71,9 @@ class pyUser(genericUser):
       self.getHome()
       self.readCorpus = os.path.join(self.ucDir, 'pyCorpus') 
       if not os.path.exists(self.readCorpus):
-        os.mknod(self.readCorpus)
+        with open(self.readCorpus, 'wb') as f:
+            corpus = 'for i in range ( 10 ) : <NEWLINE> <INDENT> print i\n'
+            f.write(corpus)
       self.logFilePath = os.path.join(self.ucDir, 'pyLogFile')
       self.lm = pythonSource
       self.basicSetup(ngram_order)
