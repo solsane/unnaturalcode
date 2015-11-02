@@ -39,7 +39,7 @@ class genericUser(object):
       
       self.readCorpus = os.path.join(self.ucDir, 'genericCorpus') 
       if not os.path.exists(self.readCorpus):
-        os.makedirs(self.readCorpus)
+        os.mknod(self.readCorpus)
       self.logFilePath = os.path.join(self.ucDir, 'genericLogFile')
       self.lm = genericSource
       self.basicSetup(ngram_order)
@@ -69,7 +69,7 @@ class pyUser(genericUser):
       self.getHome()
       self.readCorpus = os.path.join(self.ucDir, 'pyCorpus') 
       if not os.path.exists(self.readCorpus):
-        os.makedirs(self.readCorpus)
+        os.mknod(self.readCorpus)
       self.logFilePath = os.path.join(self.ucDir, 'pyLogFile')
       self.lm = pythonSource
       self.basicSetup(ngram_order)
