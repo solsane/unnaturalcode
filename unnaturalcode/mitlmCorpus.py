@@ -19,6 +19,7 @@ from __future__ import print_function
 import os, zmq, signal, os.path, subprocess, fcntl, time
 import errno
 from unnaturalcode.unnaturalCode import *
+import logging
 from logging import debug, info, warning, error, getLogger
 from multiprocessing import Process
 from functools import wraps
@@ -28,6 +29,8 @@ allWhitespace = re.compile('^\s+$')
 ucParanoid = os.getenv("PARANOID", False)
 
 mitlmLogger = getLogger('MITLM')
+
+mitlmLogger.setLevel(logging.DEBUG)
 
 CROSS_ENTROPY_PREFIX = 'x'
 PREDICTION_PREFIX = 'p'
@@ -48,6 +51,7 @@ class mitlmCorpus(object):
         self.zctx = uc.zctx
 
     def checkMitlm(self):
+        assert self.mitlmProc.poll() == None
         while self.mitlmProc:
             try:
                 msg = self.mitlmProc.stdout.readline().rstrip('\n')
@@ -72,15 +76,15 @@ class mitlmCorpus(object):
             "-o", str(self.order),
             "-s", "ModKN",
             "-u",
-            "-live-prob", self.mitlmSocketPath], stdout=subprocess.PIPE)
+            "-live-prob", self.mitlmSocketPath])
         debug("Started MITLM as PID %i." % self.mitlmProc.pid)
 
-        fd = self.mitlmProc.stdout.fileno()
-        fl = fcntl.fcntl(fd, fcntl.F_GETFL)
-        fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
+        #fd = self.mitlmProc.stdout.fileno()
+        #fl = fcntl.fcntl(fd, fcntl.F_GETFL)
+        #fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
 
         # Test the ZMQ connection.
-        time.sleep(1)
+        time.sleep(10)
         self.checkMitlm()
         self.mitlmSocket = self.zctx.socket(zmq.REQ)
         self.mitlmSocket.connect(self.mitlmSocketPath)
@@ -166,9 +170,9 @@ class mitlmCorpus(object):
         self.sendEntropyRequest(request)
         r = float(self._waitForZMQResponse())
         if r >= 70.0:
+          qString = self.corpify(request)
           warning("Infinity: %s" % qString)
           self.checkMitlm()
-          assert False
         return r
 
     def predictCorpus(self, lexemes):
