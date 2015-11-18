@@ -84,6 +84,20 @@ def cross_entropy(corpus_name):
     tokens = corpus.tokenize(content)
     return jsonify(cross_entropy=corpus.cross_entropy(tokens))
 
+@app.route('/<corpus_name>/windowed-cross-entropy')
+@app.route('/<corpus_name>/wxentropy', methods=('GET', 'POST'))
+@cross_origin()
+def windowed_cross_entropy(corpus_name):
+    """
+    POST /{corpus}/xentropy/
+
+    Calculate the cross-entropy of the uploaded file with respect to the
+    corpus.
+    """
+    corpus = get_corpus_or_404(corpus_name)
+    content = get_string_content()
+    tokens = corpus.tokenize(content)
+    return jsonify(windowed_cross_entropy=corpus.windowed_cross_entropy(tokens))
 
 @app.route('/<corpus_name>/', methods=('POST',))
 def train(corpus_name):

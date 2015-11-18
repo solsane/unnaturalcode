@@ -114,6 +114,12 @@ class GenericCorpus(object):
         """
         return self._sourceModel.queryLexed(tokens)
 
+    def windowed_cross_entropy(self, tokens):
+        """
+        Calculates the cross entropy for the given token string.
+        """
+        return self._sourceModel.windowedQuery(tokens)
+
     def reset(self):
         # Ask MITLM politely to relinquish its resources and halt.
         self._mitlm.release()
