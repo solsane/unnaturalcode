@@ -80,7 +80,9 @@ class GenericCorpus(object):
         Trains the language model with tokens -- precious tokens!
         Updates last_updated as a side-effect.
         """
-        return self._sourceModel.trainLexemes(tokens)
+        returnv = self._sourceModel.trainLexemes(tokens)
+        self._mitlm.stopMitlm()
+        return returnv
 
     def predict(self, tokens):
         """

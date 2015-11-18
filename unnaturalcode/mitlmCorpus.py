@@ -84,7 +84,7 @@ class mitlmCorpus(object):
         #fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
 
         # Test the ZMQ connection.
-        time.sleep(10)
+        #time.sleep(0)
         self.checkMitlm()
         self.mitlmSocket = self.zctx.socket(zmq.REQ)
         self.mitlmSocket.connect(self.mitlmSocketPath)
@@ -97,7 +97,6 @@ class mitlmCorpus(object):
 
     def stopMitlm(self):
         """Stop MITLM estimate-ngram, unless not running."""
-        self.checkMitlm()
         if self.mitlmSocket:
             self.mitlmSocket.setsockopt(zmq.LINGER, 0)
             self.mitlmSocket.close()
