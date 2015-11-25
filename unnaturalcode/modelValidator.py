@@ -32,7 +32,7 @@ import runpy
 import sys, traceback
 from shutil import copyfile
 from tempfile import mkstemp, mkdtemp
-import os, re
+import os, re, site
 
 from multiprocessing import Process, Queue
 try:
@@ -44,6 +44,10 @@ from unnaturalcode import flexibleTokenize
 import pdb
 
 virtualEnvActivate = os.getenv("VIRTUALENV_ACTIVATE", None)
+# wow, this is actually how virtualenv does it...
+virtualEnvBase = os.path.basename(os.path.basename(virtualEnvActivate))
+virtualEnvSite = os.path.join(virtualEnvBase, 'lib', 'python%s' % sys.version[:3], 'site-packages')
+
 
 nonWord = re.compile('\\W+')
 beginsWithWhitespace = re.compile('^\\w')
@@ -58,19 +62,58 @@ class HaltingError(Exception):
   def __str__(self):
     return repr(self.value)
 
-def runFile(q,path):
+def runFile(q,path,mode):
     if not virtualEnvActivate is None:
       if sys.version_info >= (3,0):
         exec(compile(open(virtualEnvActivate, "rb").read(), virtualEnvActivate, 'exec'), dict(__file__=virtualEnvActivate))
       else:
         execfile(virtualEnvActivate, dict(__file__=virtualEnvActivate))
     parent = path
+    runit = None
     while len(parent) > 1:
         parent = os.path.dirname(parent)
         sys.path = sys.path + [parent]
+        if mode == 'module':
+            moduleSite = ""
+            #info("Path: %s" % path)
+            for s in sys.path:
+                if s in path:
+                    if ('site-packages' in path and
+                        (not 'site-packages' in os.path.basename(s))):
+                        continue
+                    if len(s) > len(moduleSite):
+                        moduleSite = s
+                        break
+            #info("Python path: %s" % moduleSite)
+            relpath = os.path.relpath(path, moduleSite)
+            #info("Relative path: %s" % relpath)
+            components = relpath.split(os.path.sep)
+            components[-1] = components[-1].replace(".py", "", 1)
+            module = ".".join(components)
+            #info("Module name: %s" % module)
+            runit = lambda: runpy.run_module(module)
+        elif mode == 'script':
+            runit = lambda: runpy.run_path(path)
+        elif mode == 'module_indir':
+            moduledir = os.path.dirname(path)
+            filename = os.path.basename(path)
+            os.chdir(moduledir)
+            runit = lambda: runpy.run_path(filename)
+        else:
+            raise ValueError("Mode not recognized?") 
+    old_stdout = os.dup(sys.stdout.fileno())
+    old_stderr = os.dup(sys.stderr.fileno())
+    old_stdin = os.dup(sys.stdin.fileno())
+    devnull = os.open('/dev/null', os.O_RDWR)
+    os.dup2(devnull, sys.stdout.fileno())
+    os.dup2(devnull, sys.stderr.fileno())
+    os.dup2(devnull, sys.stdin.fileno())
     try:
-        runpy.run_path(path)
+        runit()
     except SyntaxError as se:
+        os.dup2(old_stdout, sys.stdout.fileno())
+        os.dup2(old_stderr, sys.stderr.fileno())
+        os.dup2(old_stdin, sys.stdin.fileno())
         ei = sys.exc_info();
         eip = (ei[0], str(ei[1]), traceback.extract_tb(ei[2]))
         try:
@@ -80,11 +123,18 @@ def runFile(q,path):
         q.put(eip)
         return
     except Exception as e:
+        os.dup2(old_stdout, sys.stdout.fileno())
+        os.dup2(old_stderr, sys.stderr.fileno())
+        os.dup2(old_stdin, sys.stdin.fileno())
         ei = sys.exc_info();
-        info("run_path exception:", exc_info=ei)
+        #info("run_path exception:", exc_info=ei)
         eip = (ei[0], str(ei[1]), traceback.extract_tb(ei[2]))
         q.put(eip)
         return
+    finally:
+        os.dup2(old_stdout, sys.stdout.fileno())
+        os.dup2(old_stderr, sys.stderr.fileno())
+        os.dup2(old_stdin, sys.stdin.fileno())
     q.put((None, "None", [(path, None, None, None)]))
     
 class validationFile(object):
@@ -100,15 +150,22 @@ class validationFile(object):
         self.mutatedLexemes = None
         self.mutatedLocation = None
         self.tempDir = tempDir
+        self.mode = 'script'
         r = self.run(path)
-        info("Ran %s, got %s" % (self.path, r[1]))
+        rscript = r
+        if (r[0] != None):
+            self.mode = 'module'
+            r = self.run(path)
+            if (r[0] != None):
+                self.mode = 'module_indir'
+                r = self.run(path)
+        #info("Ran %s as a %s, got %s" % (self.path, self.mode, r[1]))
         if (r[0] != None):
           raise Exception("Couldn't run file: %s because %s" % (self.path, r[1]))
-        #runpy.run_path(self.path)
     
     def run(self, path):
         q = Queue()
-        p = Process(target=runFile, args=(q,path,))
+        p = Process(target=runFile, args=(q,path,self.mode))
         p.start()
         try:
           r = q.get(True, 10)
@@ -141,10 +198,19 @@ class modelValidation(object):
           """Add a file for validation..."""
           files = [files] if isinstance(files, str) else files
           assert isinstance(files, list)
+          nSkipped = 0
+          nAdded = 0
           for fi in files:
-            vfi = validationFile(fi, self.lm, self.resultsDir)
-            if len(vfi.lexed) > self.sm.windowSize:
-              self.validFiles.append(vfi)
+            try:
+                vfi = validationFile(fi, self.lm, self.resultsDir)
+                if len(vfi.lexed) > self.sm.windowSize:
+                    self.validFiles.append(vfi)
+                    info("Using %s in %s mode." % (fi, vfi.mode))
+                    nAdded += 1
+            except:
+                info("Skipping %s !!!" % (fi), exc_info=sys.exc_info())
+                nSkipped += 1
+          info("Using: %i, Skipped: %i" % (nAdded, nSkipped)) 
     
     def genCorpus(self):
           """Create the corpus from the known-good file list."""
