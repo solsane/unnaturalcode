@@ -35,6 +35,7 @@ class genericLexeme(ucLexeme):
         Stringify a lexeme: produce a string describing it. For MITLM the
         string can't contain any whitespace.
         """
+        assert False
         if t is None:
             t = "UNKNOWN"
         if len(v) > 20:
