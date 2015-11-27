@@ -120,8 +120,7 @@ class GenericCorpus(object):
         """
         Calculates the cross entropy for the given token string.
         """
-        # TODO: don't return the tokens, just the entropy because Lyle says so
-        return self._sourceModel.windowedQuery(tokens)
+        return self._sourceModel.windowedQuery(tokens, returnWindows=False)
 
     def reset(self):
         # Ask MITLM politely to relinquish its resources and halt.

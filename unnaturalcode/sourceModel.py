@@ -66,7 +66,7 @@ class sourceModel(object):
     def predictLexed(self, lexemes):
         return self.cm.predictCorpus(self.stringifyAll(lexemes))
 
-    def windowedQuery(self, lexemes):
+    def windowedQuery(self, lexemes, returnWindows=True):
         lastWindowStarts = len(lexemes)-self.windowSize
         if lastWindowStarts < 1:
           return [(lexemes, self.queryLexed(lexemes))]
@@ -75,7 +75,10 @@ class sourceModel(object):
             end = i+self.windowSize
             w = lexemes[i:end] # remember range is [)
             e = self.queryLexed(w)
-            r.append( (w,e) )
+            if returnWindows:
+                r.append( (w,e) )
+            else:
+                r.append( (False,e) )
         return r
 
     def worstWindows(self, lexemes):
