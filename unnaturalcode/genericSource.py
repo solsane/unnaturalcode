@@ -24,6 +24,7 @@ import urllib
 import re
 
 allWhitespace = re.compile('^\s+$')
+whitespace = re.copmile('\s')
 
 
 class genericLexeme(ucLexeme):
@@ -79,7 +80,9 @@ class genericSource(ucSource):
             if allWhitespace.match(ls[i].val):
                 continue
             else:
-                r.append(ls[i])
+                val = ls[i].val
+                val = whitespace.sub("", val)
+                r.append(ls[i].__class__((ls[i][0], val, ls[i][2], ls[i][3], ls[i][4])))
         assert len(r)
         return genericSource(r)
 
