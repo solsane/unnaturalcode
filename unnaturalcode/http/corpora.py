@@ -27,27 +27,29 @@ import shutil
 
 from unnaturalcode import ucUser
 
-__all__ = ['PythonCorpus', 'CORPORA']
+from flask.json import loads as unjson
+
+__all__ = ['PythonCorpus', 'CORPORA', 'GenericCorpus']
 
 # See "On Naturalness of Software", Hindle et al. 2012
 BEHINDLE_NGRAM_ORDER = 6
 GOOD_ENOUGH_NGRAM_ORDER = 4
+CAMPBELL_NGRAM_ORDER = 10
 
-
-class PythonCorpus(object):
+class GenericCorpus(object):
     """
     The default UnnaturalCode Python corpus.
     """
 
-    name = 'Python corpus_name [MITLM]'
+    name = 'Generic corpus_name [MITLM]'
     description = __doc__
-    language = 'Python'
+    language = 'Generic'
 
     # Get the singleton instance of the underlying Python language (source)
     # model.
     # [sigh]... this API.
-    _pyUser = ucUser.pyUser(ngram_order=GOOD_ENOUGH_NGRAM_ORDER)
-    _sourceModel = _pyUser.sm
+    _user = ucUser.genericUser(ngram_order=CAMPBELL_NGRAM_ORDER)
+    _sourceModel = _user.sm
     _lang = _sourceModel.lang()
     _mitlm = _sourceModel.cm
 
@@ -71,14 +73,16 @@ class PythonCorpus(object):
         Tokenizes the given string in the manner appropriate for this
         corpus's language model.
         """
-        return self._lang.lex(string, mid_line)
+        return self._sourceModel.lang(unjson(string))
 
     def train(self, tokens):
         """
         Trains the language model with tokens -- precious tokens!
         Updates last_updated as a side-effect.
         """
-        return self._sourceModel.trainLexemes(tokens)
+        returnv = self._sourceModel.trainLexemes(tokens)
+        self._mitlm.stopMitlm()
+        return returnv
 
     def predict(self, tokens):
         """
@@ -90,8 +94,8 @@ class PythonCorpus(object):
 
         # The model *requires* at least four tokens, so pad prefixs tokens
         # with `unks` until it works.
-        if len(tokens) < 4:
-            unk_padding_size = 4 - len(tokens)
+        if len(tokens) < self.order:
+            unk_padding_size = self.order - len(tokens)
             prefix_tokens = [[None, None, None, None, '<unk>']] * unk_padding_size
         else:
             prefix_tokens = []
@@ -112,24 +116,52 @@ class PythonCorpus(object):
         """
         return self._sourceModel.queryLexed(tokens)
 
+    def windowed_cross_entropy(self, tokens):
+        """
+        Calculates the cross entropy for the given token string.
+        """
+        # TODO: don't return the tokens, just the entropy because Lyle says so
+        return self._sourceModel.windowedQuery(tokens)
+
     def reset(self):
         # Ask MITLM politely to relinquish its resources and halt.
         self._mitlm.release()
-
-        # Right now, since there is only one corpus, we can just hardcode its
-        # path:
-        base_path = os.path.expanduser('~/.unnaturalCode/')
-        path = os.path.join(base_path, 'pyCorpus')
-
-        # Ain't gotta do nothing if the file doesn't exist.
-        if os.path.exists(path):
-            replacementPath = os.path.join(base_path, 'pyCorpus.bak')
-            shutil.move(path, replacementPath)
+        self._user.delete()
 
     def __del__(self):
         # Ensures that MITLM has stopped.
         self._mitlm.release()
 
+
+class PythonCorpus(GenericCorpus):
+    """
+    The default UnnaturalCode Python corpus.
+    """
+
+    name = 'Python corpus_name [MITLM]'
+    description = __doc__
+    language = 'Python'
+
+    # Get the singleton instance of the underlying Python language (source)
+    # model.
+    # [sigh]... this API.
+    _user = ucUser.pyUser(ngram_order=GOOD_ENOUGH_NGRAM_ORDER)
+    _sourceModel = _user.sm
+    _lang = _sourceModel.lang()
+    _mitlm = _sourceModel.cm
+
+    order = _mitlm.order
+    # Hard-coded because "it's the best! the best a language model can get!"
+    smoothing = 'ModKN'
+
+    def tokenize(self, string, mid_line=True):
+        """
+        Tokenizes the given string in the manner appropriate for this
+        corpus's language model.
+        """
+        return self._lang.lex(string, mid_line)
+
 CORPORA = {
-    'py': PythonCorpus()
+    'py': PythonCorpus(),
+    'generic' : GenericCorpus()
 }

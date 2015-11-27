@@ -37,7 +37,7 @@ Abstract
 GUI slider widgets for controlling modifiers.
 """
 
-import gui
+from makehuman.lib import gui
 import targets
 import os
 from core import G

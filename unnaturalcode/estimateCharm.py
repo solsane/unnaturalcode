@@ -19,20 +19,20 @@
 from unnaturalcode.ucUtil import *
 from unnaturalcode.unnaturalCode import *
 from unnaturalcode.pythonSource import *
-from unnaturalcode.mitlmCorpus import *
 from unnaturalcode.sourceModel import *
 
 from logging import debug, info, warning, error
 import logging
 from random import randint
 from os import path
+import argparse
 
 import csv
 import runpy
 import sys, traceback
 from shutil import copyfile
 from tempfile import mkstemp, mkdtemp
-import os, re, site
+import os, re
 
 from multiprocessing import Process, Queue
 try:
@@ -42,12 +42,9 @@ except ImportError:
 from unnaturalcode import flexibleTokenize
 
 import pdb
+import math
 
 virtualEnvActivate = os.getenv("VIRTUALENV_ACTIVATE", None)
-# wow, this is actually how virtualenv does it...
-virtualEnvBase = os.path.basename(os.path.basename(virtualEnvActivate))
-virtualEnvSite = os.path.join(virtualEnvBase, 'lib', 'python%s' % sys.version[:3], 'site-packages')
-
 
 nonWord = re.compile('\\W+')
 beginsWithWhitespace = re.compile('^\\w')
@@ -62,58 +59,15 @@ class HaltingError(Exception):
   def __str__(self):
     return repr(self.value)
 
-def runFile(q,path,mode):
+def runFile(q,path):
     if not virtualEnvActivate is None:
       if sys.version_info >= (3,0):
         exec(compile(open(virtualEnvActivate, "rb").read(), virtualEnvActivate, 'exec'), dict(__file__=virtualEnvActivate))
       else:
         execfile(virtualEnvActivate, dict(__file__=virtualEnvActivate))
-    parent = path
-    runit = None
-    while len(parent) > 1:
-        parent = os.path.dirname(parent)
-        sys.path = sys.path + [parent]
-        if mode == 'module':
-            moduleSite = ""
-            #info("Path: %s" % path)
-            for s in sys.path:
-                if s in path:
-                    if ('site-packages' in path and
-                        (not 'site-packages' in os.path.basename(s))):
-                        continue
-                    if len(s) > len(moduleSite):
-                        moduleSite = s
-                        break
-            #info("Python path: %s" % moduleSite)
-            relpath = os.path.relpath(path, moduleSite)
-            #info("Relative path: %s" % relpath)
-            components = relpath.split(os.path.sep)
-            components[-1] = components[-1].replace(".py", "", 1)
-            module = ".".join(components)
-            #info("Module name: %s" % module)
-            runit = lambda: runpy.run_module(module)
-        elif mode == 'script':
-            runit = lambda: runpy.run_path(path)
-        elif mode == 'module_indir':
-            moduledir = os.path.dirname(path)
-            filename = os.path.basename(path)
-            os.chdir(moduledir)
-            runit = lambda: runpy.run_path(filename)
-        else:
-            raise ValueError("Mode not recognized?") 
-    old_stdout = os.dup(sys.stdout.fileno())
-    old_stderr = os.dup(sys.stderr.fileno())
-    old_stdin = os.dup(sys.stdin.fileno())
-    devnull = os.open('/dev/null', os.O_RDWR)
-    os.dup2(devnull, sys.stdout.fileno())
-    os.dup2(devnull, sys.stderr.fileno())
-    os.dup2(devnull, sys.stdin.fileno())
     try:
-        runit()
+        runpy.run_path(path)
     except SyntaxError as se:
-        os.dup2(old_stdout, sys.stdout.fileno())
-        os.dup2(old_stderr, sys.stderr.fileno())
-        os.dup2(old_stdin, sys.stdin.fileno())
         ei = sys.exc_info();
         eip = (ei[0], str(ei[1]), traceback.extract_tb(ei[2]))
         try:
@@ -123,21 +77,14 @@ def runFile(q,path,mode):
         q.put(eip)
         return
     except Exception as e:
-        os.dup2(old_stdout, sys.stdout.fileno())
-        os.dup2(old_stderr, sys.stderr.fileno())
-        os.dup2(old_stdin, sys.stdin.fileno())
         ei = sys.exc_info();
-        #info("run_path exception:", exc_info=ei)
+        info("run_path exception:", exc_info=ei)
         eip = (ei[0], str(ei[1]), traceback.extract_tb(ei[2]))
         q.put(eip)
         return
-    finally:
-        os.dup2(old_stdout, sys.stdout.fileno())
-        os.dup2(old_stderr, sys.stderr.fileno())
-        os.dup2(old_stdin, sys.stdin.fileno())
     q.put((None, "None", [(path, None, None, None)]))
     
-class validationFile(object):
+class charmFile(object):
     
     def __init__(self, path, language, tempDir):
         self.path = path
@@ -146,26 +93,30 @@ class validationFile(object):
         self.original = self.f.read()
         self.lexed = self.lm(self.original)
         self.scrubbed = self.lexed.scrubbed()
+        self.lines = self.lexed[-1].end.line
+        self.lineStart = [-1 for i in range(0, self.lines+1)]
+        self.lineTokens = [0 for i in range(0, self.lines+1)]
+        for i in range(0, len(self.scrubbed)):
+          line = self.scrubbed[i].start.line
+          self.lineTokens[line] = self.lineTokens[line] + 1
+          for j in range(line, 0, -1):
+            if self.lineStart[j] == -1:
+              self.lineStart[j] = i
+            else:
+              break
         self.f.close()
         self.mutatedLexemes = None
         self.mutatedLocation = None
         self.tempDir = tempDir
-        self.mode = 'script'
         r = self.run(path)
-        rscript = r
-        if (r[0] != None):
-            self.mode = 'module'
-            r = self.run(path)
-            if (r[0] != None):
-                self.mode = 'module_indir'
-                r = self.run(path)
-        #info("Ran %s as a %s, got %s" % (self.path, self.mode, r[1]))
+        info("Ran %s, got %s" % (self.path, r[1]))
         if (r[0] != None):
           raise Exception("Couldn't run file: %s because %s" % (self.path, r[1]))
+        #runpy.run_path(self.path)
     
     def run(self, path):
         q = Queue()
-        p = Process(target=runFile, args=(q,path,self.mode))
+        p = Process(target=runFile, args=(q,path,))
         p.start()
         try:
           r = q.get(True, 10)
@@ -185,6 +136,7 @@ class validationFile(object):
         
     def runMutant(self):
         (mutantFileHandle, mutantFilePath) = mkstemp(suffix=".py", prefix="mutant", dir=self.tempDir)
+        self.mutantFilePath = mutantFilePath
         mutantFile = os.fdopen(mutantFileHandle, "w")
         mutantFile.write(self.mutatedLexemes.deLex())
         mutantFile.close()
@@ -192,93 +144,115 @@ class validationFile(object):
         os.remove(mutantFilePath)
         return r
         
-class modelValidation(object):
+class estimateCharm(object):
     
-    def addValidationFile(self, files):
+    def addCharmFile(self, files):
           """Add a file for validation..."""
           files = [files] if isinstance(files, str) else files
           assert isinstance(files, list)
-          nSkipped = 0
-          nAdded = 0
           for fi in files:
-            try:
-                vfi = validationFile(fi, self.lm, self.resultsDir)
-                if len(vfi.lexed) > self.sm.windowSize:
-                    self.validFiles.append(vfi)
-                    info("Using %s in %s mode." % (fi, vfi.mode))
-                    nAdded += 1
-            except:
-                info("Skipping %s !!!" % (fi), exc_info=sys.exc_info())
-                nSkipped += 1
-          info("Using: %i, Skipped: %i" % (nAdded, nSkipped)) 
+            vfi = charmFile(fi, self.lm, self.tempDir)
+            if len(vfi.lexed) > 1:
+              self.charmFiles.append(vfi)
     
-    def genCorpus(self):
-          """Create the corpus from the known-good file list."""
-          for fi in self.validFiles:
-            self.sm.trainLexemes(fi.scrubbed)
-    
-    def validate(self, mutation, n):
-        """Run main validation loop."""
-        trr = 0 # total reciprocal rank
-        tr = 0 # total rank
-        ttn = 0 # total in top n
-        assert n > 0
-        for fi in self.validFiles:
-          assert isinstance(fi, validationFile)
+    def estimate(self, mutation, deltamax):
+        """Run main estimation loop."""
+        for fi in self.charmFiles:
+          assert isinstance(fi, charmFile)
+          n = len(fi.scrubbed)
+          l = fi.lexed[-1].end.line
           if fi.path in self.progress:
             progress = self.progress[fi.path]
+            errors = self.errors[fi.path]
+            mutations = self.mutations[fi.path]
+            charm = self.charm[fi.path]
           else:
-            progress = 0
-          info("Testing " + str(progress) + "/" + str(n) + " " + fi.path)
-          for i in range(progress, n):
-            merror = mutation(self, fi)
-            if merror is not None:
-              info(merror)
-              break
-            runException = fi.runMutant()
-            if (runException[0] == None):
-              exceptionName = "None"
-            else:
-              exceptionName = runException[0].__name__
-            filename, line, func, text = runException[2][-1]
-            if (fi.mutatedLocation.start.line == line):
-              online = True
-            else:
-              online = False
-            worst = self.sm.worstWindows(fi.mutatedLexemes)
-            for j in range(0, len(worst)):
-                #debug(str(worst[i][0][0].start) + " " + str(fi.mutatedLocation.start) + " " + str(worst[i][1]))
-                if worst[j][0][0].start <= fi.mutatedLocation.start and worst[j][0][-1].end >= fi.mutatedLocation.end:
-                    #debug(">>>> Rank %i (%s)" % (i, fi.path))
+            progress = [0 for i in range(1,l+3)]
+            progress[0] = None # Line numbers start with 1
+            errors = [0 for i in range(1,l+3)]
+            errors[0] = None
+            charm = [0 for i in range(1,l+3)]
+            charm[0] = None
+            mutations = 0
+          info("Testing " + str(progress) + " " + fi.path)
+          delta = float("inf")
+          mi = 0
+          while (delta > deltamax):
+            mi = mi + 1
+            mline = (mi % l) + 1
+            if fi.lineTokens[mline] > 0:
+              merror = mutation(self, fi, mline)
+              if merror is not None:
+                info(merror)
+                break
+              runException = fi.runMutant()
+              errorLine = None
+              filename = None
+              func = None
+              text = None
+              if (runException[0] == None):
+                exceptionName = "None"
+              else:
+                exceptionName = runException[0].__name__
+                for location in reversed(runException[2]):
+                  if (location[0] == fi.mutantFilePath):
+                    filename, errorLine, func, text = location
                     break
-            info(" ".join(map(str, [mutation.__name__, j, fi.mutatedLocation.start.line, exceptionName, line])))
-            if j >= len(worst):
-              error(repr(worst))
-              error(repr(fi.mutatedLocation))
-              assert False
+              if errorLine == None:
+                errorLine = l+1
+              if errorLine > l+1: # This can be caused by inserting giant multi-line string literals, in python docstrinsg
+                errorLine = l+1
+              mutLine = fi.mutatedLocation.start.line
+              #info(" ".join(map(str, [fi.path, mutLine, l, fi.mutatedLocation])))
+              #info(" ".join(map(str, [filename, errorLine, func, text])))
+              #info(runException)
+              if (mutLine == errorLine):
+                online = True
+              else:
+                online = False
+              errors[errorLine] = errors[errorLine] + 1
+              progress[mutLine] = progress[mutLine] + 1
+              mutations = mutations + 1
+              assert(l>0)
+              assert(mutations>0)
+              charm[mutLine] = (errors[mutLine]-progress[mutLine])/(float(mutations)/float(l))
+              if errorLine <= l:
+                charm[errorLine] = (errors[errorLine]-progress[errorLine])/(float(mutations)/float(l))
+              delta = 1.0/math.sqrt(float(mutations)/float(l))
+              info(" ".join(map(str, [
+                  str(mutations) + "/" + str(int(math.ceil(float(l)/(deltamax*deltamax)))),
+                  mutLine, errorLine,
+                  errors[errorLine],
+                  progress[mutLine],
+                  charm[mutLine],
+                  delta
+                ])))
+              self.detailsCsv.writerow([
+                fi.path, 
+                mutLine,
+                errorLine,
+                errors[errorLine],
+                progress[mutLine],
+                mutations,
+                charm[mutLine],
+                delta,
+                mutation.__name__, 
+                fi.mutatedLocation.type,
+                nonWord.sub('', fi.mutatedLocation.value), 
+                exceptionName, 
+                online,
+                filename,
+                func])
+              self.detailsFile.flush()
+          for li in range(1,l):
             self.csv.writerow([
-              fi.path, 
-              mutation.__name__, 
-              j, 
-              worst[j][1], 
-              fi.mutatedLocation.type,
-              fi.mutatedLocation.start.line,
-              nonWord.sub('', fi.mutatedLocation.value), 
-              exceptionName, 
-              online,
-              filename,
-              line,
-              func,
-              worst[j][0][0].start.line])
-            self.csvFile.flush()
-            trr += 1/float(i+1)
-            tr += float(i)
-            if i < 5:
-                ttn += 1
-        mrr = trr/float(len(self.validFiles) * n)
-        mr = tr/float(len(self.validFiles) * n)
-        mtn = ttn/float(len(self.validFiles) * n)
-        info("MRR %f MR %f M5+ %f" % (mrr, mr, mtn))
+              fi.path,
+              li,
+              progress[li],
+              errors[li],
+              charm[li],
+              delta
+            ])
             
     def deleteRandom(self, vFile):
         """Delete a random token from a file."""
@@ -299,10 +273,23 @@ class modelValidation(object):
         vFile.mutate(ls, inserted[0])
         return None
             
-    def replaceRandom(self, vFile):
+    def replaceRandom(self, vFile, targetLine=None):
         ls = copy(vFile.scrubbed)
         token = ls[randint(0, len(ls)-1)]
-        pos = randint(0, len(ls)-2)
+        if targetLine == None:
+          pos = randint(0, len(ls)-2)
+        else:
+          lineStart = vFile.lineStart[targetLine]
+          nextLineStart = len(vFile.scrubbed)
+          if targetLine < vFile.lines:
+            nextLineStart = vFile.lineStart[targetLine+1]
+          if (lineStart > nextLineStart):
+            pos = randint(lineStart, nextLineStart-1)
+          else:
+            pos = lineStart
+          #print str(targetLine)
+          #print repr(ls[pos])
+          assert(ls[pos].start.line <= targetLine and targetLine <= ls[pos].end.line)
         oldToken = ls.pop(pos)
         if oldToken.type == 'ENDMARKER':
           return self.replaceRandom(vFile)
@@ -472,99 +459,90 @@ class modelValidation(object):
         vFile.mutatedLocation = pythonLexeme.fromTuple((token.OP, c, (line, lineChar), (line, lineChar)))
         return None
       
-    def __init__(self, source=None, language=pythonSource, resultsDir=None, corpus=mitlmCorpus):
-        self.resultsDir = ((resultsDir or os.getenv("ucResultsDir", None)) or mkdtemp(prefix='ucValidation-'))
+    def __init__(self, source=None,
+                 language=pythonSource,
+                 results=None,
+                 corpus=None,
+                 details=None,
+                 activate=None,
+                 tempDir="."):
         if isinstance(source, str):
             raise NotImplementedError
         elif isinstance(source, list):
-            self.validFileNames = source
+            self.charmFileNames = source
         else:
             raise TypeError("Constructor arguments!")
-
-        assert os.access(self.resultsDir, os.X_OK & os.R_OK & os.W_OK)
-        self.csvPath = path.join(self.resultsDir, 'results.csv')
+        self.notReleased = True
         self.progress = dict()
+        self.results = results
+        self.details = details
+        self.tempDir = tempDir
         try:
-          self.csvFile = open(self.csvPath, 'r')
+          self.csvFile = open(self.results, 'r')
           self.csv = csv.reader(self.csvFile)
           for row in self.csv:
-            if row[0] in self.progress:
-              self.progress[row[0]] += 1 
-            else:
-              self.progress[row[0]] = 1
+              self.progress[row[0]][row[1]] = row[2]
+              self.mutations[row[0]] = self.mutations[row[0]] + row[2]
+              self.errors[row[0]][row[1]] = row[3]
+              self.charm[row[0]][row[1]] = row[4]
           self.csvFile.close()
         except (IOError):
           pass
-        self.csvFile = open(self.csvPath, 'a')
+        self.csvFile = open(self.results + ".new", 'w')
         self.csv = csv.writer(self.csvFile)
-        self.corpusPath = os.path.join(self.resultsDir, 'validationCorpus')
-        self.cm = corpus(readCorpus=self.corpusPath, writeCorpus=self.corpusPath, order=10)
+        self.csv.writerow([
+          "file",
+          "line",
+          "mutants",
+          "errors",
+          "charm",
+          "delta"
+        ])
+        self.detailsFile = open(self.details, 'a')
+        self.detailsCsv = csv.writer(self.detailsFile)
         self.lm = language
-        self.sm = sourceModel(cm=self.cm, language=self.lm)
-        self.validFiles = list()
-        self.addValidationFile(self.validFileNames)
-        self.genCorpus()
+        self.charmFiles = list()
+        self.addCharmFile(self.charmFileNames)
 
     def release(self):
-        """Close files and stop MITLM"""
-        self.cm.release()
-        self.cm = None
+        self.notReleased = False
+        """Any cleanup goes here..."""
         
     def __del__(self):
         """I am a destructor, but release should be called explictly."""
-        assert not self.cm, "Destructor called before release()"
+        assert not self.notReleased, "Destructor called before release()"
 
-DELETE = modelValidation.deleteRandom
-INSERT = modelValidation.insertRandom
-REPLACE = modelValidation.replaceRandom
-PUNCTUATION = modelValidation.punctRandom
-NAMELIKE = modelValidation.nameRandom
-COLON = modelValidation.colonRandom
-DELETEWORDCHAR = modelValidation.deleteWordRandom
-INSERTWORDCHAR = modelValidation.insertWordRandom
-DELETENUMCHAR = modelValidation.deleteNumRandom
-INSERTNUMCHAR = modelValidation.insertNumRandom
-DELETEPUNCTCHAR = modelValidation.deletePunctRandom
-INSERTPUNCTCHAR = modelValidation.insertPunctRandom
-DELETESPACE = modelValidation.dedentRandom
-INSERTSPACE = modelValidation.indentRandom
+DELETE = estimateCharm.deleteRandom
+INSERT = estimateCharm.insertRandom
+REPLACE = estimateCharm.replaceRandom
+PUNCTUATION = estimateCharm.punctRandom
+NAMELIKE = estimateCharm.nameRandom
+COLON = estimateCharm.colonRandom
+DELETEWORDCHAR = estimateCharm.deleteWordRandom
+INSERTWORDCHAR = estimateCharm.insertWordRandom
+DELETENUMCHAR = estimateCharm.deleteNumRandom
+INSERTNUMCHAR = estimateCharm.insertNumRandom
+DELETEPUNCTCHAR = estimateCharm.deletePunctRandom
+INSERTPUNCTCHAR = estimateCharm.insertPunctRandom
+DELETESPACE = estimateCharm.dedentRandom
+INSERTSPACE = estimateCharm.indentRandom
 
 def main():
-        testFileList = os.getenv("TEST_FILE_LIST", sys.argv[1])
-        n = int(sys.argv[2])
-        outDir = sys.argv[3]
         logging.getLogger().setLevel(logging.DEBUG)
-        testProjectFiles = open(testFileList).read().splitlines()
-        v = modelValidation(source=testProjectFiles, language=pythonSource, corpus=mitlmCorpus, resultsDir=outDir)
-        if re.match('i', sys.argv[4]):
-          v.validate(mutation=INSERT, n=n)
-        if re.match('r', sys.argv[4]):
-          v.validate(mutation=REPLACE, n=n)
-        if re.match('d', sys.argv[4]):
-          v.validate(mutation=DELETE, n=n)
-        if re.match('s', sys.argv[4]):
-          v.validate(mutation=DELETESPACE, n=n)
-        if re.match('S', sys.argv[4]):
-          v.validate(mutation=INSERTSPACE, n=n)
-        #if re.match('p', sys.argv[4]):
-          #v.validate(mutation=PUNCTUATION, n=n)
-        if re.match('n', sys.argv[4]):
-          v.validate(mutation=NAMELIKE, n=n)
-        if re.match('c', sys.argv[4]):
-          v.validate(mutation=COLON, n=n)
-        if re.match('w', sys.argv[4]):
-          v.validate(mutation=DELETEWORDCHAR, n=n)
-        if re.match('W', sys.argv[4]):
-          v.validate(mutation=INSERTWORDCHAR, n=n)
-        if re.match('p', sys.argv[4]):
-          v.validate(mutation=DELETEPUNCTCHAR, n=n)
-        if re.match('P', sys.argv[4]):
-          v.validate(mutation=INSERTPUNCTCHAR, n=n)
-        if re.match('o', sys.argv[4]):
-          v.validate(mutation=DELETENUMCHAR, n=n)
-        if re.match('O', sys.argv[4]):
-          v.validate(mutation=INSERTNUMCHAR, n=n)
-        # TODO: assert csvs
+        parser=argparse.ArgumentParser(description="Estimates charm for Python source code.")
+        parser.add_argument("input_file", help="Python source file to estimate charm for.", nargs="+")
+        parser.add_argument("-o", "--results-file", help="File to store results in.", default="charm.csv")
+        parser.add_argument("-d", "--details-file", help="File to store extra detailed results in.", default=None)
+        parser.add_argument("-a", "--activate", help="VirtualEnv activate.py to run before input files (if any)", default=None)
+        parser.add_argument("-e", "--maximum-error", help="Sets the maximum allowed error (the minimum precision) of the results", default=0.1, type=float)
+        args = parser.parse_args()
+        v = estimateCharm(source=args.input_file, 
+                          language=pythonSource,
+                          results=args.results_file,
+                          details=args.details_file,
+                          activate=args.activate
+                         )
+        v.estimate(REPLACE, args.maximum_error)
         v.release()
 
 if __name__ == '__main__':

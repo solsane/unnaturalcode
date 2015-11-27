@@ -1,5 +1,5 @@
 #!/usr/bin/python
-#    Copyright 2013, 2014 Joshua Charles Campbell, Alex Wilson
+#    Copyright 2013, 2014 Joshua Charles Campbell, Alex Wilson, Eddie Santos
 #
 #    This file is part of UnnaturalCode.
 #    
@@ -31,6 +31,9 @@ except ImportError:
 COMMENT = 53
 
 ws = re.compile('\s')
+
+
+# TODO: Refactor so base class is genericSource
 
 class pythonLexeme(ucLexeme):
     

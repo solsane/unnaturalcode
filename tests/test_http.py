@@ -48,7 +48,13 @@ class UnnaturalHTTPTestCase(unittest.TestCase):
             corpus = 'for i in range ( 10 ) : <NEWLINE> <INDENT> print i\n'
             f.write(corpus)
 
-    def test_delete(self):
+        # TODO: Install a dummy corpus....
+        with open(fromUCHome('genericCorpus'), 'w') as f:
+            # TODO: Move this to test data file...
+            corpus = 'for i in range ( 10 ) : <NEWLINE> <INDENT> print i\n'
+            f.write(corpus)
+
+    def test_delete_python(self):
         assert len(estimate_ngram_pids()) in (0, 1)
 
         rv = self.app.delete('/py/')
@@ -58,7 +64,17 @@ class UnnaturalHTTPTestCase(unittest.TestCase):
         # It stopped running.
         assert not estimate_ngram_pids()
 
-    def test_info(self):
+    def test_delete_generic(self):
+        assert len(estimate_ngram_pids()) in (0, 1)
+
+        rv = self.app.delete('/generic/')
+        assert rv.status_code == 204
+
+        assert not os.path.exists(fromUCHome('genericCorpus'))
+        # It stopped running.
+        assert not estimate_ngram_pids()
+
+    def test_info_python(self):
         rv = self.app.get('/py')
         # It should redirect...
         assert 300 <= rv.status_code < 400
@@ -76,7 +92,25 @@ class UnnaturalHTTPTestCase(unittest.TestCase):
         # There are less important, but they should at least be there...
         assert all(prop in resp for prop in ['name', 'description', 'smoothing'])
 
-    def test_train(self):
+    def test_info_generic(self):
+        rv = self.app.get('/generic')
+        # It should redirect...
+        assert 300 <= rv.status_code < 400
+        assert rv.headers['Location'].endswith('/generic/')
+
+        rv = self.app.get('/generic/')
+        assert rv.status_code == 200
+        assert rv.headers['Content-Type'] == 'application/json'
+
+        # Now parse the JSON, making sure there are a few critical fields.
+        resp = json.loads(rv.data)
+        assert resp['language'].lower() == 'generic'
+        assert type(resp['order']) is int
+        assert resp['order'] > 1
+        # There are less important, but they should at least be there...
+        assert all(prop in resp for prop in ['name', 'description', 'smoothing'])
+
+    def test_train_python(self):
         # TODO: Fake a corpus up in here!
         rv = self.app.post('/py/', data=dict(s='print "Hello, World!"\n'))
 
@@ -88,7 +122,24 @@ class UnnaturalHTTPTestCase(unittest.TestCase):
         resp = json.loads(rv.data)
         assert resp['tokens'] == 3
 
-    def test_predict_from_url(self):
+    def test_train_generic(self):
+        # TODO: Fake a corpus up in here!
+        jsonString=json.dumps([
+                {'type': 'FUNCTION', 'value': 'print', 'start': [1, 0], 'end': [1, 5]},
+                {'type': 'STRING', 'value': '"Hello, World!"', 'start': [1, 6], 'end': [1, 21]},
+                {'type': 'NEWLINE', 'value': "\n", 'start': [1, 22], 'end': [1, 22]},
+            ])
+        rv = self.app.post('/generic/', data=dict(s=jsonString))
+
+        # TODO: THIS IS A TERRIBLE TEST AND YOU SHOULD FEEL BAD
+
+        assert rv.status_code == 202
+        assert rv.headers['Content-Type'] == 'application/json'
+
+        resp = json.loads(rv.data)
+        assert resp['tokens'] == 3
+
+    def test_predict_from_url_python(self):
         rv = self.app.get('/py/predict/for/i/in')
 
         assert rv.status_code == 200
@@ -99,6 +150,19 @@ class UnnaturalHTTPTestCase(unittest.TestCase):
         # Despite sending three tokens, the minimum tokens used for prediction
         # MUST be four!
         assert len(resp['tokens']) == 4
+        assert resp['tokens'][0][4] == '<unk>'
+
+    def test_predict_from_url_generic(self):
+        rv = self.app.get('/generic/predict/for/i/in')
+
+        assert rv.status_code == 200
+        assert rv.headers['Content-Type'] == 'application/json'
+        resp = json.loads(rv.data)
+
+        assert len(resp['suggestions']) > 0
+        # Despite sending three tokens, the minimum tokens used for prediction
+        # MUST be four!
+        assert len(resp['tokens']) == 10
         assert resp['tokens'][0][4] == '<unk>'
 
     def test_predict_from_post(self):

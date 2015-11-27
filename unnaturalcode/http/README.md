@@ -8,9 +8,7 @@ See the repository root for running all tests.
 
 # All rooted on resource `/{corpus}`
 
- * Currently, only the `py` corpus is supported. Obviously, `py` is the
-   occam-π corpus.
-
+ * Currently, only the `py` and `generic` corpora are supported.
 
 # Corpus info—`GET /{corpus}/`
 
@@ -58,11 +56,40 @@ Use one of `?f` or `?s`:
 ### `?f`
 
 Upload a file in a multipart message as `?f`. The file will
-automatically be tokenized.
+automatically be tokenized if the corpus is the Python corpus.
+When using the generic corpus, a JSON format is expected. The
+JSON format looks like:
+
+    [   
+        {   
+            "end": [ 1, 5 ],
+            "start": [ 1, 0 ],
+            "type": "FUNCTION",
+            "value": "print"
+        },
+        {   
+            "end": [ 1, 21 ],
+            "start": [ 1, 6 ],
+            "type": "STRING",
+            "value": "\"Hello, World!\""
+        },
+        {   
+            "end": [ 1, 23 ],
+            "start": [ 1, 22 ],
+            "type": "NEWLINE",
+            "value": "\n"
+        }
+    ]
+Where `end` is the ending line and column of the token, `start` is the starting
+line and column of the token, `type` is the token's type, and `value` is the
+token's literal text.
+
 
 ### `?s`
 
-Post a string excerpt `?s`. The file will automatically be tokenized.
+Post a string excerpt `?s`. The file will automatically be tokenized, or
+if the generic corpus is used, it should be provided in the JSON format
+described above.
 
 
 
@@ -78,18 +105,23 @@ Use one of `?f` or `?s`:
 
 ### `?f`
 
-Upload a file in a multipart message as `?f`. The file will
-automatically be tokenized.
+Upload a file in a multipart message as `?f`. The file will automatically be tokenized, or
+if the generic corpus is used, it should be provided in the JSON format
+described above.
 
 ### `?s`
 
-Post a string excerpt `?s`. The file will automatically be tokenized.
+Post a string excerpt `?s`. The file will automatically be tokenized, or
+if the generic corpus is used, it should be provided in the JSON format
+described above.
 
 
 
 # Train—`POST /{corpus}/`
 
-Trains the corpus with a file. 
+Trains the corpus with a file. The file will automatically be tokenized, or
+if the generic corpus is used, it should be provided in the JSON format
+described above.
 
 ## Mandatory arguments
 

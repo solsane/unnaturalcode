@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+
 # Copyright (C) 2014  Eddie Antonio Santos
 #
 # This program is free software: you can redistribute it and/or modify
@@ -26,7 +27,7 @@ import os
 
 from api_utils import get_corpus_or_404, get_string_content
 from flask import Flask, make_response, jsonify, Blueprint
-from flask.ext.cors import cross_origin
+from flask.ext.cors import cross_origin, CORS
 from token_fmt import parse_tokens
 
 
@@ -83,6 +84,20 @@ def cross_entropy(corpus_name):
     tokens = corpus.tokenize(content)
     return jsonify(cross_entropy=corpus.cross_entropy(tokens))
 
+@app.route('/<corpus_name>/windowed-cross-entropy')
+@app.route('/<corpus_name>/wxentropy', methods=('GET', 'POST'))
+@cross_origin()
+def windowed_cross_entropy(corpus_name):
+    """
+    POST /{corpus}/xentropy/
+
+    Calculate the cross-entropy of the uploaded file with respect to the
+    corpus.
+    """
+    corpus = get_corpus_or_404(corpus_name)
+    content = get_string_content()
+    tokens = corpus.tokenize(content)
+    return jsonify(windowed_cross_entropy=corpus.windowed_cross_entropy(tokens))
 
 @app.route('/<corpus_name>/', methods=('POST',))
 def train(corpus_name):
@@ -106,7 +121,7 @@ def delete_corpus(corpus_name):
     assert hasattr(corpus, 'reset'), 'Python corpus MUST have a reset method!'
     if hasattr(corpus, 'reset'):
         corpus.reset()
-
+    
     # Successful response with no content.
     return '', 204, {}
 
@@ -120,7 +135,7 @@ def tokenize(corpus_name):
     Tokenize the given string for this corpus's language.
     """
     corpus = get_corpus_or_404(corpus_name)
-    # Args... should be a file or strong
+    # Args... should be a file or string
     content = get_string_content()
     return jsonify(tokens=corpus.tokenize(content, mid_line=False))
 

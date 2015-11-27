@@ -40,8 +40,8 @@ TODO
 import math
 import numpy as np
 
-import events3d
-from core import G
+from makehuman.core import events3d
+from makehuman.core import G
 import glmodule as gl
 import matrix
 
