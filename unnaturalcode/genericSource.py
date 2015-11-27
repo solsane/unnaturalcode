@@ -23,6 +23,8 @@ from logging import debug, info, warning, error
 import urllib
 import re
 
+allWhitespace = re.compile('^\s+$')
+
 class genericLexeme(ucLexeme):
     
     @classmethod
@@ -63,3 +65,20 @@ class genericSource(ucSource):
                 line += nls
                 col = len(l.val.splitlines().pop())
         return src
+    
+    def scrubbed(self):
+        """Clean up generic source code removing extra whitespace tokens and comments"""
+        ls = copy(self)
+        assert len(ls)
+        i = 0
+        r = []
+        for i in range(0, len(ls)):
+            #if allWhitespace.match(ls[i].val) and i < len(ls)-1 and allWhitespace.match(ls[i+1]):
+                #continue
+            if allWhitespace.match(ls[i].val):
+                continue
+            else:
+                r.append(ls[i])
+        assert len(r)
+        return genericSource(r)
+
