@@ -25,6 +25,7 @@ import re
 
 allWhitespace = re.compile('^\s+$')
 
+
 class genericLexeme(ucLexeme):
     
     @classmethod
@@ -39,7 +40,7 @@ class genericLexeme(ucLexeme):
             v = v[0:20]
         # quote all whitespace, colons, backslashes, control and unicode, and quotes
         v = urllib.quote(v, "!#$%&()*+,-./;<=>?@[]^_`{|}~")
-        assert(re.match('\w+$', t) is not None, "Lexeme type should be a word.")
+        assert(re.match('\w+$', t), "Lexeme type should be a word.")
         return t + ":" + v
         
     
