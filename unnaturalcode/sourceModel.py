@@ -40,7 +40,7 @@ class sourceModel(object):
 
     def stringifyAll(self, lexemes):
         """Clean up a list of lexemes and convert it to a list of strings"""
-        return [i[4] for i in lexemes]
+        return [i.stringify() for i in lexemes]
 
     def corpify(self, lexemes):
         """Corpify a string"""
