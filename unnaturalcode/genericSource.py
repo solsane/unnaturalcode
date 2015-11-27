@@ -24,7 +24,7 @@ import urllib
 import re
 
 allWhitespace = re.compile('^\s+$')
-whitespace = re.copmile('\s')
+whitespace = re.compile('\s')
 
 
 class genericLexeme(ucLexeme):
