@@ -120,6 +120,7 @@ class GenericCorpus(object):
         """
         Calculates the cross entropy for the given token string.
         """
+        # TODO: don't return the tokens, just the entropy because Lyle says so
         return self._sourceModel.windowedQuery(tokens)
 
     def reset(self):

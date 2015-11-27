@@ -67,13 +67,13 @@ class sourceModel(object):
         return self.cm.predictCorpus(self.stringifyAll(lexemes))
 
     def windowedQuery(self, lexemes):
-        lastWindowStarts = len(lexemes)-self.windowSize-1
+        lastWindowStarts = len(lexemes)-self.windowSize
         if lastWindowStarts < 1:
           return [(lexemes, self.queryLexed(lexemes))]
         r = []
-        for i in range(0,lastWindowStarts):
+        for i in range(0,lastWindowStarts+1): # remember range is [)
             end = i+self.windowSize
-            w = lexemes[i:end]
+            w = lexemes[i:end] # remember range is [)
             e = self.queryLexed(w)
             r.append( (w,e) )
         return r
