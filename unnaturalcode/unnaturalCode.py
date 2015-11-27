@@ -150,10 +150,7 @@ class ucLexeme(tuple):
             return '<'+t+'>'
         
     def stringify(self):
-        if self.val:
-            return self.val
-        else:
-            return '<'+self.ltype+'>'
+        return self.__class__.stringify_build(self.ltype, self.val)
 
     @classmethod
     def fromTuple(cls, tup):
@@ -169,7 +166,7 @@ class ucLexeme(tuple):
     @classmethod
     def fromDict(cls, d):
         if isinstance(d, dict):
-            t = (d['type'], d['value'],  ucPos(d['start']),  ucPos(d['end']), cls.stringify(d['type'], d['value']))
+            t = (d['type'], d['value'],  ucPos(d['start']),  ucPos(d['end']), cls.stringify_build(d['type'], d['value']))
         else:
             raise TypeError("Constructor argument cant be " + str(type(d)))
         return cls(t)
@@ -180,7 +177,7 @@ class ucLexeme(tuple):
         if isinstance(args[0], cls):
             return args[0]
         elif len(args) == 4:
-            t = (args[0], args[1], ucPos(args[2]), ucPos(args[3]), cls.stringify(args[0], args[1]))
+            t = (args[0], args[1], ucPos(args[2]), ucPos(args[3]), cls.stringify_build(args[0], args[1]))
         elif len(args) == 5:
             t = (args[0], args[1], ucPos(args[2]), ucPos(args[3]), args[4])
         else:

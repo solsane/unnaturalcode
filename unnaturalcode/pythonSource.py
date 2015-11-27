@@ -37,16 +37,14 @@ ws = re.compile('\s')
 
 class pythonLexeme(ucLexeme):
     
-    def stringify(self):
+    @classmethod
+    def stringify_build(cls, t, v):
         """
         Stringify a lexeme: produce a string describing it.
         In the case of comments, strings, indents, dedents, and newlines, and
         the endmarker, a string with '<CATEGORY-NAME>' is returned.  Else, its
         actual text is returned.
         """
-        t = self.ltype
-        v = self.val
-
         if t == 'COMMENT':
             return '<'+t+'>'
         # Josh though this would be a good idea for some strange reason:

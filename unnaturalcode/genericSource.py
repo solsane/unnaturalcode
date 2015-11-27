@@ -29,13 +29,12 @@ whitespace = re.compile('\s')
 
 class genericLexeme(ucLexeme):
     
-    def stringify(self):
+    @classmethod
+    def stringify_build(cls, t, v):
         """
         Stringify a lexeme: produce a string describing it. For MITLM the
         string can't contain any whitespace.
         """
-        t = self.ltype
-        v = self.val
         if t is None:
             t = "UNKNOWN"
         if len(v) > 20:
