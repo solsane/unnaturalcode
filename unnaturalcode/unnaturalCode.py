@@ -190,7 +190,15 @@ class ucLexeme(tuple):
 
     
 class ucSource(list):
+
+    """
+    Base class for source code, essentially a list of lexemes that can do
+    a bunch of stuff.
     
+    Remember to override lexemeClass in subclasses so that the code here
+    fills the source list with lexemes of the correct class!
+    """
+  
     lexemeClass = ucLexeme
 
     def __init__(self, value=[], **kwargs):
