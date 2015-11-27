@@ -142,12 +142,11 @@ class ucLexeme(tuple):
     def lines(self):
          return self[3][0] - self[2][0]
     
-    @classmethod
-    def stringify(cls, t, v):
-        if v:
-            return v
+    def stringify(cls):
+        if self.val:
+            return self.val
         else:
-            return '<'+t+'>'
+            return '<'+self.ltype+'>'
         
     @classmethod
     def fromTuple(cls, tup):
