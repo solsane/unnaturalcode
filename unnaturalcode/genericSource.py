@@ -49,6 +49,8 @@ class genericLexeme(ucLexeme):
 
 class genericSource(ucSource):
     
+    lexemeClass = genericLexeme
+
     def deLex(self):
         line = 1
         col = 0

@@ -191,6 +191,8 @@ class ucLexeme(tuple):
     
 class ucSource(list):
     
+    lexemeClass = ucLexeme
+
     def __init__(self, value=[], **kwargs):
         if isinstance(value, str):
             self.extend(self.lex(value, **kwargs))
@@ -198,9 +200,9 @@ class ucSource(list):
             if len(value) == 0:
                 return
             elif isinstance(value[0], dict):
-                self.extend(map(ucLexeme.fromDict, value))
+                self.extend(map(self.lexemeClass.fromDict, value))
             else:
-                self.extend(map(ucLexeme, value))
+                self.extend(map(self.lexemeClass, value))
         else:
             raise AttributeError
 

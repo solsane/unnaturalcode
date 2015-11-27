@@ -75,6 +75,8 @@ class pythonLexeme(ucLexeme):
 
 class pythonSource(ucSource):
     
+    lexemeClass = pythonLexeme
+    
     def lex(self, code, mid_line=False):
         tokGen = flexibleTokenize.generate_tokens(StringIO(code).readline,
             mid_line)
