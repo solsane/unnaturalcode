@@ -68,7 +68,7 @@ class sourceModel(object):
 
     def windowedQuery(self, lexemes, returnWindows=True):
         lastWindowStarts = len(lexemes)-self.windowSize
-        error("Query was %i long:" % (len(lexemes),)) 
+        #error("Query was %i long:" % (len(lexemes),)) 
         if lastWindowStarts < 1:
             if returnWindows:
                 return [(lexemes, self.queryLexed(lexemes))]

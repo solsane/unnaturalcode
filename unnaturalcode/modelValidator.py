@@ -115,6 +115,7 @@ def runFile(q,path,mode):
         os.dup2(old_stderr, sys.stderr.fileno())
         os.dup2(old_stdin, sys.stdin.fileno())
         ei = sys.exc_info();
+        info("run_path exception:", exc_info=ei)
         eip = (ei[0], str(ei[1]), traceback.extract_tb(ei[2]))
         try:
           eip[2].append(ei[1][1])
@@ -127,7 +128,7 @@ def runFile(q,path,mode):
         os.dup2(old_stderr, sys.stderr.fileno())
         os.dup2(old_stdin, sys.stdin.fileno())
         ei = sys.exc_info();
-        #info("run_path exception:", exc_info=ei)
+        info("run_path exception:", exc_info=ei)
         eip = (ei[0], str(ei[1]), traceback.extract_tb(ei[2]))
         q.put(eip)
         return

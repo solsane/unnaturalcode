@@ -148,7 +148,7 @@ class ucLexeme(tuple):
             return v
         else:
             return '<'+t+'>'
-        
+
     def stringify(self):
         return self.__class__.stringify_build(self.ltype, self.val)
 

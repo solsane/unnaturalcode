@@ -67,7 +67,8 @@ class pythonLexeme(ucLexeme):
             t0 = token.tok_name[tup[0]]
         else:
             t0 = tup[0]
-        return tuple.__new__(cls, (t0, str(tup[1]), ucPos(tup[2]), ucPos(tup[3]), cls.stringify(t0, str(tup[1]))))
+        new = tuple.__new__(cls, (t0, tup[1], ucPos(tup[2]), ucPos(tup[3]),  cls.stringify_build(t0, tup[1])))
+        return new
           
     def comment(self):
         return (self.ltype == 'COMMENT')
