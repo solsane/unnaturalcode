@@ -21,10 +21,11 @@ from unnaturalcode.unnaturalCode import *
 from unnaturalcode.pythonSource import *
 from unnaturalcode.mitlmCorpus import *
 from unnaturalcode.sourceModel import *
+from unnaturalcode.mutators import Mutators
+mutators = Mutators()
 
 from logging import debug, info, warning, error
 import logging
-from random import randint
 from os import path
 
 import csv
@@ -43,10 +44,6 @@ from unnaturalcode import flexibleTokenize
 
 import pdb
 
-virtualEnvActivate = os.getenv("VIRTUALENV_ACTIVATE", None)
-# wow, this is actually how virtualenv does it...
-virtualEnvBase = os.path.basename(os.path.basename(virtualEnvActivate))
-virtualEnvSite = os.path.join(virtualEnvBase, 'lib', 'python%s' % sys.version[:3], 'site-packages')
 
 
 nonWord = re.compile('\\W+')
@@ -232,7 +229,7 @@ class modelValidation(object):
             progress = 0
           info("Testing " + str(progress) + "/" + str(n) + " " + fi.path)
           for i in range(progress, n):
-            merror = mutation(self, fi)
+            merror = mutation(mutators, fi)
             if merror is not None:
               info(merror)
               break
@@ -281,197 +278,6 @@ class modelValidation(object):
         mtn = ttn/float(len(self.validFiles) * n)
         info("MRR %f MR %f M5+ %f" % (mrr, mr, mtn))
             
-    def deleteRandom(self, vFile):
-        """Delete a random token from a file."""
-        ls = copy(vFile.scrubbed)
-        token = ls.pop(randint(0, len(ls)-1))
-        if token.type == 'ENDMARKER':
-          return self.deleteRandom(vFile)
-        vFile.mutate(ls, token)
-        return None
-            
-    def insertRandom(self, vFile):
-        ls = copy(vFile.scrubbed)
-        token = ls[randint(0, len(ls)-1)]
-        pos = randint(0, len(ls)-1)
-        inserted = ls.insert(pos, token)
-        if inserted[0].type == 'ENDMARKER':
-          return self.insertRandom(vFile)
-        vFile.mutate(ls, inserted[0])
-        return None
-            
-    def replaceRandom(self, vFile):
-        ls = copy(vFile.scrubbed)
-        token = ls[randint(0, len(ls)-1)]
-        pos = randint(0, len(ls)-2)
-        oldToken = ls.pop(pos)
-        if oldToken.type == 'ENDMARKER':
-          return self.replaceRandom(vFile)
-        inserted = ls.insert(pos, token)
-        if inserted[0].type == 'ENDMARKER':
-          return self.replaceRandom(vFile)
-        vFile.mutate(ls, inserted[0])
-        return None
-        
-    def dedentRandom(self, vFile):
-        s = copy(vFile.original)
-        lines = s.splitlines(True);
-        while True:
-          line = randint(0, len(lines)-1)
-          if beginsWithWhitespace.match(lines[line]):
-            lines[line][0] = ''
-            break
-        vFile.mutatedLexemes = vFile.lm("".join(lines))
-        vFile.mutatedLocation = pythonLexeme.fromTuple((token.INDENT, ' ', (line+1, 0), (line+1, 0)))
-        return None
-        
-    def indentRandom(self, vFile):
-        s = copy(vFile.original)
-        lines = s.splitlines(True);
-        line = randint(0, len(lines)-1)
-        if beginsWithWhitespace.match(lines[line]):
-          lines[line] = lines[line][0] + lines[line]
-        else:
-          lines[line] = " " + lines[line]
-        vFile.mutatedLexemes = vFile.lm("".join(lines))
-        vFile.mutatedLocation = pythonLexeme.fromTuple((token.INDENT, ' ', (line+1, 0), (line+1, 0)))
-        return None
-    
-    def punctRandom(self, vFile):
-        s = copy(vFile.original)
-        charPos = randint(1, len(s)-1)
-        linesbefore = s[:charPos].splitlines(True)
-        line = len(linesbefore)
-        lineChar = len(linesbefore[-1])
-        c = s[charPos:charPos+1]
-        if (funny.match(c)):
-          new = s[:charPos] + s[charPos+1:]
-          vFile.mutatedLexemes = vFile.lm(new)
-          vFile.mutatedLocation = pythonLexeme.fromTuple((token.OP, c, (line, lineChar), (line, lineChar)))
-          return None
-        else:
-          return self.punctRandom(vFile)
-    
-    #def keyRandom(self, vFile):
-        #s = copy(vFile.original)
-        
-    def nameRandom(self, vFile):
-      return self.deleteWordRandom(vFile)
-
-    def insertWordRandom(self, vFile):
-        s = copy(vFile.original)
-        while True:
-          char = s[randint(1, len(s)-1)]
-          charPos = randint(1, len(s)-1)
-          linesbefore = s[:charPos].splitlines(True)
-          line = len(linesbefore)
-          lineChar = len(linesbefore[-1])
-          c = s[charPos:charPos+1]
-          if (name.match(char)):
-            break
-        new = s[:charPos] + char + s[charPos:]
-        vFile.mutatedLexemes = vFile.lm(new)
-        vFile.mutatedLocation = pythonLexeme.fromTuple((token.OP, c, (line, lineChar), (line, lineChar)))
-        return None
-
-    def deleteWordRandom(self, vFile):
-        s = copy(vFile.original)
-        while True:
-          charPos = randint(1, len(s)-1)
-          linesbefore = s[:charPos].splitlines(True)
-          line = len(linesbefore)
-          lineChar = len(linesbefore[-1])
-          c = s[charPos:charPos+1]
-          if (name.match(c)):
-            break
-        new = s[:charPos] + s[charPos+1:]
-        vFile.mutatedLexemes = vFile.lm(new)
-        vFile.mutatedLocation = pythonLexeme.fromTuple((token.OP, c, (line, lineChar), (line, lineChar)))
-        return None
-        
-    def insertPunctRandom(self, vFile):
-        s = copy(vFile.original)
-        if not punct.search(s):
-          return "No punctuation"
-        while (True):
-          char = s[randint(1, len(s)-1)]
-          if (punct.match(char)):
-            break
-        charPos = randint(1, len(s)-1)
-        linesbefore = s[:charPos].splitlines(True)
-        line = len(linesbefore)
-        lineChar = len(linesbefore[-1])
-        c = s[charPos:charPos+1]
-        new = s[:charPos] + char + s[charPos:]
-        vFile.mutatedLexemes = vFile.lm(new)
-        vFile.mutatedLocation = pythonLexeme.fromTuple((token.OP, c, (line, lineChar), (line, lineChar)))
-        return None
-
-    def deleteNumRandom(self, vFile):
-        s = copy(vFile.original)
-        if not numeric.search(s):
-          return "No numbers"
-        positions = [x.start() for x in numeric.finditer(s)]
-        while True:
-          if (len(positions) == 1):
-            charPos = positions[0]
-          else:
-            charPos = positions[randint(1, len(positions)-1)]
-          linesbefore = s[:charPos].splitlines(True)
-          line = len(linesbefore)
-          lineChar = len(linesbefore[-1])
-          c = s[charPos:charPos+1]
-          if (numeric.match(c)):
-            break
-        new = s[:charPos] + s[charPos+1:]
-        vFile.mutatedLexemes = vFile.lm(new)
-        vFile.mutatedLocation = pythonLexeme.fromTuple((token.OP, c, (line, lineChar), (line, lineChar)))
-        return None
-
-    def insertNumRandom(self, vFile):
-        s = copy(vFile.original)
-        char = str(randint(0, 9))
-        charPos = randint(1, len(s)-1)
-        linesbefore = s[:charPos].splitlines(True)
-        line = len(linesbefore)
-        lineChar = len(linesbefore[-1])
-        c = s[charPos:charPos+1]
-        new = s[:charPos] + char + s[charPos:]
-        vFile.mutatedLexemes = vFile.lm(new)
-        vFile.mutatedLocation = pythonLexeme.fromTuple((token.OP, c, (line, lineChar), (line, lineChar)))
-        return None
-
-    def deletePunctRandom(self, vFile):
-        s = copy(vFile.original)
-        if not punct.search(s):
-          return "No punctuation"
-        while True:
-          charPos = randint(1, len(s)-1)
-          linesbefore = s[:charPos].splitlines(True)
-          line = len(linesbefore)
-          lineChar = len(linesbefore[-1])
-          c = s[charPos:charPos+1]
-          if (punct.match(c)):
-            break
-        new = s[:charPos] + s[charPos+1:]
-        vFile.mutatedLexemes = vFile.lm(new)
-        vFile.mutatedLocation = pythonLexeme.fromTuple((token.OP, c, (line, lineChar), (line, lineChar)))
-        return None
-
-    def colonRandom(self, vFile):
-        s = copy(vFile.original)
-        while True:
-          charPos = randint(1, len(s)-1)
-          linesbefore = s[:charPos].splitlines(True)
-          line = len(linesbefore)
-          lineChar = len(linesbefore[-1])
-          c = s[charPos:charPos+1]
-          if (c == ':'):
-            break
-        new = s[:charPos] + s[charPos+1:]
-        vFile.mutatedLexemes = vFile.lm(new)
-        vFile.mutatedLocation = pythonLexeme.fromTuple((token.OP, c, (line, lineChar), (line, lineChar)))
-        return None
       
     def __init__(self, source=None, language=pythonSource, resultsDir=None, corpus=mitlmCorpus):
         self.resultsDir = ((resultsDir or os.getenv("ucResultsDir", None)) or mkdtemp(prefix='ucValidation-'))
@@ -515,58 +321,38 @@ class modelValidation(object):
         """I am a destructor, but release should be called explictly."""
         assert not self.cm, "Destructor called before release()"
 
-DELETE = modelValidation.deleteRandom
-INSERT = modelValidation.insertRandom
-REPLACE = modelValidation.replaceRandom
-PUNCTUATION = modelValidation.punctRandom
-NAMELIKE = modelValidation.nameRandom
-COLON = modelValidation.colonRandom
-DELETEWORDCHAR = modelValidation.deleteWordRandom
-INSERTWORDCHAR = modelValidation.insertWordRandom
-DELETENUMCHAR = modelValidation.deleteNumRandom
-INSERTNUMCHAR = modelValidation.insertNumRandom
-DELETEPUNCTCHAR = modelValidation.deletePunctRandom
-INSERTPUNCTCHAR = modelValidation.insertPunctRandom
-DELETESPACE = modelValidation.dedentRandom
-INSERTSPACE = modelValidation.indentRandom
-
 def main():
-        testFileList = os.getenv("TEST_FILE_LIST", sys.argv[1])
-        n = int(sys.argv[2])
-        outDir = sys.argv[3]
+        from argparse import ArgumentParser
+        parser = ArgumentParser(description="Test and Valide UnnaturalCode")
+        parser.add_argument('-t', '--test-file-list', nargs='?', help='List of files to Test')
+        parser.add_argument('-n', '--iterations', type=int, help='Number of times to iterate', default=50)
+        parser.add_argument('-o', '--output-dir', help='Location to store output files', default='.')
+        parser.add_argument('-m', '--mutation', help='Mutation to use')
+        parser.add_argument('-v', '--virtualenv', help='VirtualEnv to use when running the files under test. Must be the location of activate_this.py')
+        parser.add_argument('-M', '--mitlm', help='Location of MITLM binary')
+        args=parser.parse_args()
         logging.getLogger().setLevel(logging.DEBUG)
+        testFileList = args.test_file_list
         testProjectFiles = open(testFileList).read().splitlines()
-        v = modelValidation(source=testProjectFiles, language=pythonSource, corpus=mitlmCorpus, resultsDir=outDir)
-        if re.match('i', sys.argv[4]):
-          v.validate(mutation=INSERT, n=n)
-        if re.match('r', sys.argv[4]):
-          v.validate(mutation=REPLACE, n=n)
-        if re.match('d', sys.argv[4]):
-          v.validate(mutation=DELETE, n=n)
-        if re.match('s', sys.argv[4]):
-          v.validate(mutation=DELETESPACE, n=n)
-        if re.match('S', sys.argv[4]):
-          v.validate(mutation=INSERTSPACE, n=n)
-        #if re.match('p', sys.argv[4]):
-          #v.validate(mutation=PUNCTUATION, n=n)
-        if re.match('n', sys.argv[4]):
-          v.validate(mutation=NAMELIKE, n=n)
-        if re.match('c', sys.argv[4]):
-          v.validate(mutation=COLON, n=n)
-        if re.match('w', sys.argv[4]):
-          v.validate(mutation=DELETEWORDCHAR, n=n)
-        if re.match('W', sys.argv[4]):
-          v.validate(mutation=INSERTWORDCHAR, n=n)
-        if re.match('p', sys.argv[4]):
-          v.validate(mutation=DELETEPUNCTCHAR, n=n)
-        if re.match('P', sys.argv[4]):
-          v.validate(mutation=INSERTPUNCTCHAR, n=n)
-        if re.match('o', sys.argv[4]):
-          v.validate(mutation=DELETENUMCHAR, n=n)
-        if re.match('O', sys.argv[4]):
-          v.validate(mutation=INSERTNUMCHAR, n=n)
+        global virtualEnvActivate
+        virtualEnvActivate = args.virtualenv
+        # wow, this is actually how virtualenv does it...
+        virtualEnvBase = os.path.basename(os.path.basename(virtualEnvActivate))
+        
+        if (args.mitlm):
+            os.environ["ESTIMATENGRAM"] = args.mitlm
+            os.environ["LD_LIBRARY_PATH"] = os.path.dirname(args.mitlm)
+            error(os.environ["LD_LIBRARY_PATH"])
+        
+        virtualEnvSite = os.path.join(virtualEnvBase, 'lib', 'python%s' % sys.version[:3], 'site-packages')
+        v = modelValidation(source=testProjectFiles, 
+                            language=pythonSource, 
+                            corpus=mitlmCorpus, 
+                            resultsDir=args.output_dir)
+        v.validate(mutation=getattr(Mutators, args.mutation), n=args.iterations)
         # TODO: assert csvs
         v.release()
+        
 
 if __name__ == '__main__':
     main()
