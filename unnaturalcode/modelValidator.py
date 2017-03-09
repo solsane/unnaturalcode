@@ -22,6 +22,8 @@ from unnaturalcode.pythonSource import *
 from unnaturalcode.mitlmCorpus import *
 from unnaturalcode.sourceModel import *
 from unnaturalcode.mutators import Mutators
+from unnaturalcode.ucUser import pyUser
+
 mutators = Mutators()
 
 from logging import debug, info, warning, error
@@ -112,7 +114,7 @@ def runFile(q,path,mode):
         os.dup2(old_stderr, sys.stderr.fileno())
         os.dup2(old_stdin, sys.stdin.fileno())
         ei = sys.exc_info();
-        info("run_path exception:", exc_info=ei)
+        #info("run_path exception:", exc_info=ei)
         eip = (ei[0], str(ei[1]), traceback.extract_tb(ei[2]))
         try:
           eip[2].append(ei[1][1])
@@ -125,7 +127,7 @@ def runFile(q,path,mode):
         os.dup2(old_stderr, sys.stderr.fileno())
         os.dup2(old_stdin, sys.stdin.fileno())
         ei = sys.exc_info();
-        info("run_path exception:", exc_info=ei)
+        #info("run_path exception:", exc_info=ei)
         eip = (ei[0], str(ei[1]), traceback.extract_tb(ei[2]))
         q.put(eip)
         return
@@ -220,6 +222,7 @@ class modelValidation(object):
         trr = 0 # total reciprocal rank
         tr = 0 # total rank
         ttn = 0 # total in top n
+        n_so_far = 0
         assert n > 0
         for fi in self.validFiles:
           assert isinstance(fi, validationFile)
@@ -244,21 +247,23 @@ class modelValidation(object):
             else:
               online = False
             worst = self.sm.worstWindows(fi.mutatedLexemes)
-            for j in range(0, len(worst)):
+            for uc_result in range(0, len(worst)):
                 #debug(str(worst[i][0][0].start) + " " + str(fi.mutatedLocation.start) + " " + str(worst[i][1]))
-                if worst[j][0][0].start <= fi.mutatedLocation.start and worst[j][0][-1].end >= fi.mutatedLocation.end:
+                if ((worst[uc_result][0][0].start 
+                     <= fi.mutatedLocation.start) 
+                    and worst[uc_result][0][-1].end >= fi.mutatedLocation.end):
                     #debug(">>>> Rank %i (%s)" % (i, fi.path))
                     break
-            info(" ".join(map(str, [mutation.__name__, j, fi.mutatedLocation.start.line, exceptionName, line])))
-            if j >= len(worst):
+            info(" ".join(map(str, [mutation.__name__, uc_result, fi.mutatedLocation.start.line, exceptionName, line])))
+            if uc_result >= len(worst):
               error(repr(worst))
               error(repr(fi.mutatedLocation))
               assert False
             self.csv.writerow([
               fi.path, 
               mutation.__name__, 
-              j, 
-              worst[j][1], 
+              uc_result, 
+              worst[uc_result][1], 
               fi.mutatedLocation.type,
               fi.mutatedLocation.start.line,
               nonWord.sub('', fi.mutatedLocation.value), 
@@ -267,16 +272,17 @@ class modelValidation(object):
               filename,
               line,
               func,
-              worst[j][0][0].start.line])
+              worst[uc_result][0][0].start.line])
             self.csvFile.flush()
-            trr += 1/float(i+1)
-            tr += float(i)
-            if i < 5:
+            trr += 1/float(uc_result+1)
+            tr += float(uc_result+1)
+            if uc_result < 5:
                 ttn += 1
-        mrr = trr/float(len(self.validFiles) * n)
-        mr = tr/float(len(self.validFiles) * n)
-        mtn = ttn/float(len(self.validFiles) * n)
-        info("MRR %f MR %f M5+ %f" % (mrr, mr, mtn))
+            n_so_far += 1
+            mrr = trr/float(n_so_far)
+            mr = tr/float(n_so_far)
+            mtn = ttn/float(n_so_far)
+            info("MRR %f MR %f M5+ %f" % (mrr, mr, mtn))
             
       
     def __init__(self, source=None, language=pythonSource, resultsDir=None, corpus=mitlmCorpus):
@@ -330,6 +336,7 @@ def main():
         parser.add_argument('-m', '--mutation', help='Mutation to use')
         parser.add_argument('-v', '--virtualenv', help='VirtualEnv to use when running the files under test. Must be the location of activate_this.py')
         parser.add_argument('-M', '--mitlm', help='Location of MITLM binary')
+        parser.add_argument('-T', '--retrain', action='store_true', help='Retrain model first')
         args=parser.parse_args()
         logging.getLogger().setLevel(logging.DEBUG)
         testFileList = args.test_file_list
@@ -343,6 +350,11 @@ def main():
             os.environ["ESTIMATENGRAM"] = args.mitlm
             os.environ["LD_LIBRARY_PATH"] = os.path.dirname(args.mitlm)
             error(os.environ["LD_LIBRARY_PATH"])
+        
+        if (args.retrain):
+            ucpy = pyUser()
+            ucpy.delete()
+            ucpy.sm.trainFile(testProjectFiles)
         
         virtualEnvSite = os.path.join(virtualEnvBase, 'lib', 'python%s' % sys.version[:3], 'site-packages')
         v = modelValidation(source=testProjectFiles, 
