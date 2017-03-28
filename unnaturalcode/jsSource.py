@@ -16,8 +16,7 @@
 #    You should have received a copy of the GNU Affero General Public License
 #    along with UnnaturalCode.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import print
-
+from logging import debug, info, warning, error
 import json
 import subprocess
 import tempfile
@@ -83,7 +82,7 @@ def tokenize_file(file_obj):
                             stdin=file_obj,
                             stdout=subprocess.PIPE)
     raw = json.loads(status.stdout.decode('UTF-8')
-    print(json.dumps(raw, indent=2))
+    error(json.dumps(raw, indent=2))
     return None
 
 
@@ -110,4 +109,7 @@ class jsSource(ucSource):
   
     lexemeClass = ucLexeme
     
-    def lex():
+    def lex(self, code):
+        file_obj = tempfile.TemporaryFile('w+t', encoding='utf-8')
+        file_obj.write(code)
+        raw = tokenize_file(file_obj)
