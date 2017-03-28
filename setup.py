@@ -35,7 +35,7 @@ setup(
     name = "unnaturalcode",
     version = __version__,
     packages = find_packages(
-        exclude = ["testdata"]
+        exclude = ["testdata", "js/javascript-sources"]
       ),
     entry_points = {
         "console_scripts": [

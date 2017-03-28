@@ -37,7 +37,7 @@ ws = re.compile('\s')
 
 class pythonLexeme(ucLexeme):
     
-    @classmethods
+    @classmethod
     def stringify_build(cls, t, v):
         """
         Stringify a lexeme: produce a string describing it.
