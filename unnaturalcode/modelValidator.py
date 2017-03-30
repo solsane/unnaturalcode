@@ -60,7 +60,7 @@ class ValidationFile(object):
     def __init__(self, path, language, tempDir):
         self.path = path
         self.lm = language
-        self.f = open(path)
+        self.f = codecs.open(path, 'r', 'UTF-8')
         self.original = self.f.read()
         self.lexed = self.lm(self.original)
         self.scrubbed = self.lexed.scrubbed()
@@ -71,17 +71,10 @@ class ValidationFile(object):
     
     def mutate(self, lexemes, location):
         assert isinstance(lexemes, ucSource)
-        self.mutatedLexemes = self.lm(lexemes.deLex())
+        #self.mutatedLexemes = self.lm(lexemes.deLex())
+        self.mutatedLexemes = lexemes
         self.mutatedLocation = location
         
-    def runMutant(self):
-        (mutantFileHandle, mutantFilePath) = mkstemp(suffix=".py", prefix="mutant", dir=self.tempDir)
-        mutantFile = os.fdopen(mutantFileHandle, "w")
-        mutantFile.write(self.mutatedLexemes.deLex())
-        mutantFile.close()
-        r = self.run(mutantFilePath)
-        os.remove(mutantFilePath)
-        return r
         
 class ModelValidation(object):
     
@@ -233,7 +226,7 @@ class ValidationMain(object):
         parser.add_argument('-t', '--test-file-list', nargs='?', help='List of files to Test')
         parser.add_argument('-n', '--iterations', type=int, help='Number of times to iterate', default=50)
         parser.add_argument('-o', '--output-dir', help='Location to store output files', default='.')
-        parser.add_argument('-m', '--mutation', help='Mutation to use')
+        parser.add_argument('-m', '--mutation', help='Mutation to use', required=True)
         parser.add_argument('-M', '--mitlm', help='Location of MITLM binary')
         self.add_args(parser) # get more args from subclasses
         args=parser.parse_args()

@@ -23,6 +23,7 @@ import logging
 from logging import debug, info, warning, error, getLogger
 from multiprocessing import Process
 from functools import wraps
+import codecs
 
 allWhitespace = re.compile('^\s+$')
 
@@ -117,14 +118,14 @@ class mitlmCorpus(object):
         """Stringify lexed source: produce space-seperated sequence of lexemes"""
         assert isinstance(lexemes, list)
         assert len(lexemes)
-        return " ".join(lexemes)
+        return u" ".join(lexemes)
 
     def openCorpus(self):
         """Opens the corpus (if necessary)"""
         if (self.corpusFile):
             assert not self.corpusFile.closed
             return
-        self.corpusFile = open(self.writeCorpus, 'a')
+        self.corpusFile = codecs.open(self.writeCorpus, 'a', encoding='UTF-8')
 
     def closeCorpus(self):
         """Closes the corpus (if necessary)"""

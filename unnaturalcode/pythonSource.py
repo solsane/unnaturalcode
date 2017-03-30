@@ -83,26 +83,7 @@ class pythonSource(ucSource):
             mid_line)
         return [pythonLexeme.fromTuple(t) for t in tokGen]
     
-    def deLex(self):
-        line = 1
-        col = 0
-        src = ""
-        for l in self:
-            for i in range(line, l.start.line):
-                src += os.linesep
-                col = 0
-                line += 1
-            for i in range(col, l.start.col):
-                src += " "
-                col += 1
-            src += l.val
-            col += len(l.val)
-            nls = l.val.count(os.linesep)
-            if (nls > 0):
-                line += nls
-                col = len(l.val.splitlines().pop())
-        return src
-    
+   
     def unCommented(self):
         assert len(self)
         return filter(lambda a: not a.comment(), copy(self))

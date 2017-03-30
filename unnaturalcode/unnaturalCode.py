@@ -202,7 +202,7 @@ class ucSource(list):
     lexemeClass = ucLexeme
 
     def __init__(self, value=[], **kwargs):
-        if isinstance(value, str):
+        if isinstance(value, basestring):
             self.extend(self.lex(value, **kwargs))
         elif isinstance(value, list):
             if len(value) == 0:
@@ -212,7 +212,7 @@ class ucSource(list):
             else:
                 self.extend(map(self.lexemeClass, value))
         else:
-            raise AttributeError
+            raise AttributeError, type(value).__name__
 
     def settle(self):
         """Contents may settle during shipping."""
@@ -347,6 +347,32 @@ class ucSource(list):
     def sort():
       raise TypeError("Je refuse!")
     
+    def deLexWithCharPositions(self):
+        line = 1
+        col = 0
+        src = ""
+        charpositions = {}
+        for l in self:
+            for i in range(line, l.start.line):
+                src += os.linesep
+                col = 0
+                line += 1
+            for i in range(col, l.start.col):
+                src += " "
+                col += 1
+            for i in range(len(src), len(src) + len(l.val)):
+              charpositions[i] = l
+            src += l.val
+            col += len(l.val)
+            nls = l.val.count(os.linesep)
+            if (nls > 0):
+                line += nls
+                col = len(l.val.splitlines().pop())
+        return (src, charpositions)
+        
     
+    def deLex(self):
+        src, charpositions = self.deLexWithCharPositions()
+        return src
       
 # rwfubmqqoiigevcdefhmidzavjwg

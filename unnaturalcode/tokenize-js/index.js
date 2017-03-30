@@ -100,7 +100,7 @@ function removeShebangLine(source) {
   */
 function deduceSourceType(code) {
   try {
-    esprima.parse(code, { sourceType: 'script' });
+    esprima.parse(code, { sourceType: 'script', tolerant: true });
     return 'script';
   } catch (e) {
     return 'module';

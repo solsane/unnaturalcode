@@ -21,49 +21,16 @@ import json
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import Sequence, TextIO, cast
+from unnaturalcode.unnaturalCode import ucLexeme, ucSource, ucPos
+import os
+from copy import copy
 
-THIS_DIRECTORY = Path(__file__).parent
+THIS_DIRECTORY = Path(__file__).parent.parent
 TOKENIZE_JS_BIN = (str(THIS_DIRECTORY / 'tokenize-js' / 'wrapper.sh'),)
-CHECK_SYNTAX_BIN = (*TOKENIZE_JS_BIN, '--check-syntax')
+assert os.path.exists(TOKENIZE_JS_BIN[0]), TOKENIZE_JS_BIN[0]
+CHECK_SYNTAX_BIN = (TOKENIZE_JS_BIN[0], '--check-syntax')
 
 
-def synthetic_file(text):
-    """
-    Creates an unnamed temporary file with the given text content.
-    The returned file object always has a fileno.
-    """
-    file_obj = tempfile.TemporaryFile('w+t', encoding='utf-8')
-    file_obj.write(text)
-    file_obj.seek(0)
-    return file_obj
-
-
-def tokenize(text):
-    """
-    Tokenizes the given string.
-
-    >>> tokens = tokenize('$("hello");')
-    >>> len(tokens)
-    5
-    >>> isinstance(tokens[0], Token)
-    True
-    """
-    with synthetic_file(text) as f:
-        return tokenize_file(f)
-
-
-def check_syntax(source):
-    """
-    Checks the syntax of the given JavaScript string.
-
-    >>> check_syntax('function name() {}')
-    True
-    >>> check_syntax('function name() }')
-    False
-    """
-    with synthetic_file(source) as source_file:
-        return check_syntax_file(source_file)
 
 
 def tokenize_file(file_obj):
@@ -77,13 +44,12 @@ def tokenize_file(file_obj):
     >>> isinstance(tokens[0], Token)
     True
     """
-    status = subprocess.run(TOKENIZE_JS_BIN,
-                            check=True,
-                            stdin=file_obj,
-                            stdout=subprocess.PIPE)
-    raw = json.loads(status.stdout.decode('UTF-8')
-    error(json.dumps(raw, indent=2))
-    return None
+    status = subprocess.check_output(TOKENIZE_JS_BIN,
+                            stdin=file_obj)
+    raw = json.loads(status)
+    #error(json.dumps(raw, indent=2))
+    assert (len(raw) >  0), status
+    return raw
 
 
 def check_syntax_file(source_file):
@@ -98,8 +64,8 @@ def check_syntax_file(source_file):
         ...
     AssertionError
     """
-    status = subprocess.run(CHECK_SYNTAX_BIN, stdin=source_file)
-    return status.returncode == 0
+    status = subprocess.check_output(CHECK_SYNTAX_BIN, stdin=source_file)
+    return json.loads(status)
 
 
 class jsLexeme(ucLexeme):
@@ -109,7 +75,67 @@ class jsSource(ucSource):
   
     lexemeClass = ucLexeme
     
+    def esprima_to_uc(self,d):
+        string = d["value"]
+        if d["type"] == "String":
+            string = '"string"'
+        elif d["type"] == "RegularExpression":
+            string = '/regexp/'
+        elif d["type"] == "Template":
+            text = d["value"]
+            assert len(text) >= 2
+            if text.startswith('`'):
+                if text.endswith('`'):
+                    string = '`standalone-template`'
+                elif text.endswith('${'):
+                    string = '`template-head${'
+                else:
+                    raise Exception('Unhandled template literal: ' + text)
+            elif text.startswith('}'):
+                if text.endswith('`'):
+                    string = '}template-tail`'
+                elif text.endswith('${'):
+                    string = '}template-middle${'
+                else:
+                    raise Exception('Unhandled template literal: ' + text)
+            else:
+                raise Exception('Unhandled template literal: ' + text)
+        if " " in string:
+            raise Exception('Whitespace in my string')
+        return self.lexemeClass((
+                    d["type"], 
+                    d["value"], 
+                    ucPos(d["loc"]["start"]["line"], d["loc"]["start"]["column"]),
+                    ucPos(d["loc"]["end"]["line"], d["loc"]["end"]["column"]),
+                    d["value"], 
+                ))
+    
     def lex(self, code):
-        file_obj = tempfile.TemporaryFile('w+t', encoding='utf-8')
-        file_obj.write(code)
+        file_obj = tempfile.TemporaryFile('w+b')
+        file_obj.write(code.encode("UTF-8"))
+        file_obj.flush()
         raw = tokenize_file(file_obj)
+        return map(self.esprima_to_uc, raw)
+        
+    def check_syntax(self):
+        file_obj = tempfile.TemporaryFile('w+b')
+        src, charpositions = self.deLexWithCharPositions()
+        file_obj.write(src.encode("UTF-8"))
+        file_obj.flush()
+        raw = check_syntax_file(file_obj)
+        if len(raw) == 0:
+            return (None, None, None, None, None)
+        if raw['index'] in charpositions:
+            #error(json.dumps(raw, indent=2))
+            #error(json.dumps(charpositions[raw['index']]))
+            tok = charpositions[raw['index']]
+            return (None, raw['lineNumber'], None, tok.value, raw['description'])
+        else:
+            return (None, raw['lineNumber'], None, None, raw['description'])
+
+    def scrubbed(self):
+        ls = copy(self)
+        assert (len(ls) > 0)
+        return jsSource(ls)
+        
+        

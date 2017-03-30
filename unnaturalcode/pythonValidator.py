@@ -141,6 +141,16 @@ class PythonValidationFile(ValidationFile):
         if (r[0] != None):
           raise Exception("Couldn't run file: %s because %s" % (self.path, r[1]))
 
+    def runMutant(self):
+        (mutantFileHandle, mutantFilePath) = mkstemp(suffix=".py", prefix="mutant", dir=self.tempDir)
+        mutantFile = os.fdopen(mutantFileHandle, "w")
+        mutantFile.write(self.mutatedLexemes.deLex())
+        mutantFile.close()
+        r = self.run(mutantFilePath)
+        os.remove(mutantFilePath)
+        return r
+
+
 class PythonValidation(ModelValidation):
     def get_error(self, fi):
       runException = fi.runMutant()
