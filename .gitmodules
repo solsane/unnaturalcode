@@ -1,0 +1,3 @@
+[submodule "pymitlm/mitlm"]
+	path = pymitlm/mitlm
+	url = git@github.com:orezpraw/MIT-Language-Modeling-Toolkit.git

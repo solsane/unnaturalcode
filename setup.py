@@ -1,7 +1,12 @@
 #!/usr/bin/env python
 import sys
+import os
+from os.path import isfile
+import subprocess
 from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
+from distutils.core import Extension, Command
+from distutils.command.build_ext import build_ext
 from unnaturalcode import __version__
 
 with open('requirements.txt') as f:
@@ -31,6 +36,38 @@ class PyTest(TestCommand):
         sys.exit(errno)
 # end from
 
+class BuildConfigure(Command):
+    def initialize_options(self):
+        pass
+      
+    def finalize_options(self):
+        pass
+
+    def run(self):
+        os.chdir("pymitlm/mitlm")
+        if not isfile('configure'):
+            subprocess.call([
+              "./autogen.sh",
+              "--disable-maintainer-mode",
+              '--with-pic'
+              ])
+        if not isfile('Makefile'):
+            subprocess.call([
+              "./configure",
+              "--disable-maintainer-mode",
+              '--with-pic'
+              ])
+        subprocess.call(["make"])
+        os.chdir("../..")
+
+class BuildExtension(build_ext):
+    def run(self):
+        for cmd_name in self.get_sub_commands():
+            self.run_command(cmd_name)
+
+        build_ext.run(self)
+    sub_commands = [("build_configure", None)] + build_ext.sub_commands
+
 setup(
     name = "unnaturalcode",
     version = __version__,
@@ -51,5 +88,22 @@ setup(
     install_requires = requires,
     tests_require=tests_require,
     zip_safe = False,
-    cmdclass = {'test': PyTest},
+    cmdclass = {'test': PyTest,
+                "build_configure": BuildConfigure,
+                "build_ext": BuildExtension},
+    ext_modules=[Extension('_pymitlm',
+                           [
+                             'pymitlm/pymitlm.i',
+                           ],
+                           extra_objects=[
+                             'pymitlm/mitlm/.libs/libmitlm.a',
+                           ],
+                           include_dirs=['pymitlm/mitlm/src'],
+                           #library_dirs=['pymitlm/mitlm/.libs'],
+                           #runtime_library_dirs=['pymitlm/mitlm/.libs'],
+                           libraries=['gfortran'],
+                           swig_opts=['-c++'],
+                           extra_compile_args=['-std=gnu++11', '-fPIC']
+                          )],
+    py_modules=['pymitlm'],
 )
