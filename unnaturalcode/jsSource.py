@@ -20,53 +20,12 @@ from logging import debug, info, warning, error
 import json
 import subprocess
 import tempfile
-from pathlib import Path
 from unnaturalcode.unnaturalCode import ucLexeme, ucSource, ucPos
 import os
 from copy import copy
 
-THIS_DIRECTORY = Path(__file__).parent.parent
-TOKENIZE_JS_BIN = (str(THIS_DIRECTORY / 'tokenize-js' / 'wrapper.sh'),)
-assert os.path.exists(TOKENIZE_JS_BIN[0]), TOKENIZE_JS_BIN[0]
-CHECK_SYNTAX_BIN = (TOKENIZE_JS_BIN[0], '--check-syntax')
-
-
-
-
-def tokenize_file(file_obj):
-    """
-    Tokenizes the given JavaScript file.
-
-    >>> with synthetic_file('$("hello");') as f:
-    ...     tokens = tokenize_file(f)
-    >>> len(tokens)
-    5
-    >>> isinstance(tokens[0], Token)
-    True
-    """
-    status = subprocess.check_output(TOKENIZE_JS_BIN,
-                            stdin=file_obj)
-    raw = json.loads(status)
-    #error(json.dumps(raw, indent=2))
-    assert (len(raw) >  0), status
-    return raw
-
-
-def check_syntax_file(source_file):
-    """
-    Check the syntax of the give JavaScript file.
-
-    >>> with synthetic_file('$("hello");') as f:
-    ...     assert check_syntax_file(f)
-    >>> with synthetic_file('$("hello" + );') as f:
-    ...     assert check_syntax_file(f)
-    Traceback (most recent call last):
-        ...
-    AssertionError
-    """
-    status = subprocess.check_output(CHECK_SYNTAX_BIN, stdin=source_file)
-    return json.loads(status)
-
+from unnaturalcode.jsTokenize import JSTokenizer
+js = JSTokenizer()
 
 class jsLexeme(ucLexeme):
     pass
@@ -111,18 +70,19 @@ class jsSource(ucSource):
                 ))
     
     def lex(self, code):
-        file_obj = tempfile.TemporaryFile('w+b')
-        file_obj.write(code.encode("UTF-8"))
-        file_obj.flush()
-        raw = tokenize_file(file_obj)
+        #file_obj = tempfile.TemporaryFile('w+b')
+        #file_obj.write(code.encode("UTF-8"))
+        #file_obj.flush()
+        #raw = tokenize_file(file_obj)
+        raw = js.tokenize(code)
         return map(self.esprima_to_uc, raw)
         
     def check_syntax(self):
-        file_obj = tempfile.TemporaryFile('w+b')
+        #file_obj = tempfile.TemporaryFile('w+b')
         src, charpositions = self.deLexWithCharPositions()
-        file_obj.write(src.encode("UTF-8"))
-        file_obj.flush()
-        raw = check_syntax_file(file_obj)
+        #file_obj.write(src.encode("UTF-8"))
+        #file_obj.flush()
+        raw = js.check_syntax(src)
         if len(raw) == 0:
             return (None, None, None, None, None)
         if raw['index'] in charpositions:

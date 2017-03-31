@@ -57,9 +57,11 @@ function checkSyntax(source) {
 
   try {
     esprima.parse(source, { sourceType });
+    console.log(JSON.stringify([]));
     return true;
   } catch (e) {
-    return false;
+    console.log(JSON.stringify(e));
+    return true;
   }
 }
 
@@ -100,7 +102,7 @@ function removeShebangLine(source) {
   */
 function deduceSourceType(code) {
   try {
-    esprima.parse(code, { sourceType: 'script', tolerant: true });
+    esprima.parse(code, { sourceType: 'script' });
     return 'script';
   } catch (e) {
     return 'module';

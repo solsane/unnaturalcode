@@ -147,18 +147,10 @@ class mitlmCorpus(object):
         self.corpusFile.flush()
         self.stopMitlm()
 
-    def _corpified(wrappedMethod):
-        "Decorator. Automatically deals with lexemes for the wrapped method."
-        @wraps(wrappedMethod)
-        def method(self, lexemes, *args, **kwargs):
-            qString = self.corpify(lexemes)
-            return wrappedMethod(self, qString, *args, **kwargs)
-        return method
-
     def _waitForZMQResponse(self):
-        assert self.mitlmSocket
+        #assert self.mitlmSocket
         while True:
-          self.checkMitlm()
+          #self.checkMitlm()
           try:
             self.mitlmSocket.poll(timeout=1000)
             return self.mitlmSocket.recv(flags=zmq.NOBLOCK)
@@ -166,8 +158,9 @@ class mitlmCorpus(object):
               pass
 
     def queryCorpus(self, request):
-        self.startMitlm()
-        self.sendEntropyRequest(request)
+        #self.startMitlm()
+        self.mitlmSocket.send(
+          (CROSS_ENTROPY_PREFIX + self.corpify(request)).encode('UTF-8'))
         r = float(self._waitForZMQResponse())
         if r >= 70.0:
           qString = self.corpify(request)
@@ -182,18 +175,16 @@ class mitlmCorpus(object):
                 remove_prefix=len(lexemes))
 
 
-    @_corpified
     def sendEntropyRequest(self, request):
         # Coerce into bytes, if required.
-        return self._send(CROSS_ENTROPY_PREFIX + request)
+        return self._send(CROSS_ENTROPY_PREFIX + self.corpify(request))
 
-    @_corpified
     def sendPredictionRequest(self, request):
-        return self._send(PREDICTION_PREFIX + request)
+        return self._send(PREDICTION_PREFIX  + self.corpify(request))
 
     def _send(self, string):
         "Sends a string to zmq. Ensures MITLM is initialized."
-        assert self.mitlmSocket
+        #assert self.mitlmSocket
         if isinstance(string, unicode):
             string = string.encode('utf-8')
         return self.mitlmSocket.send(string)

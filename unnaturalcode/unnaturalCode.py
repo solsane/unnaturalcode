@@ -348,27 +348,31 @@ class ucSource(list):
       raise TypeError("Je refuse!")
     
     def deLexWithCharPositions(self):
+        from StringIO import StringIO
         line = 1
         col = 0
-        src = ""
+        src = StringIO()
         charpositions = {}
-        for l in self:
-            for i in range(line, l.start.line):
-                src += os.linesep
+        for j in range(0, len(self)):
+            l = self[j]
+            if line < l[2][0]:
+                src.write(os.linesep * (l[2][0] - line))
                 col = 0
-                line += 1
-            for i in range(col, l.start.col):
-                src += " "
-                col += 1
-            for i in range(len(src), len(src) + len(l.val)):
-              charpositions[i] = l
-            src += l.val
-            col += len(l.val)
-            nls = l.val.count(os.linesep)
+                line += (l[2][0] - line)
+            if col < l[2][1]:
+                src.write(" "  * (l[2][1] - col))
+                col += (l[2][1] - col)
+            #for i in range(len(src), len(src) + len(l[1])):
+              #charpositions[i] = j
+            src.write(l[1])
+            nls = l[1].count(os.linesep)
             if (nls > 0):
                 line += nls
-                col = len(l.val.splitlines().pop())
-        return (src, charpositions)
+                col = len(l[1].splitlines().pop())
+            else:
+                col += len(l[1])
+        src.flush()
+        return (src.getvalue(), charpositions)
         
     
     def deLex(self):
