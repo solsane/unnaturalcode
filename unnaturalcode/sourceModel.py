@@ -67,7 +67,6 @@ class sourceModel(object):
         return self.cm.predictCorpus(self.stringifyAll(lexemes))
 
     def windowedQuery(self, lexemes, returnWindows=True):
-        self.cm.startMitlm()
         lastWindowStarts = len(lexemes)-self.windowSize
         #error("Query was %i long:" % (len(lexemes),)) 
         if lastWindowStarts < 1:

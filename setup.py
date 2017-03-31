@@ -71,9 +71,7 @@ class BuildExtension(build_ext):
 setup(
     name = "unnaturalcode",
     version = __version__,
-    packages = find_packages(
-        exclude = ["testdata", "js/javascript-sources"]
-      ),
+    packages = ['unnaturalcode', 'pymitlm'],
     entry_points = {
         "console_scripts": [
             "ucwrap = unnaturalcode.wrap:main",
@@ -91,7 +89,7 @@ setup(
     cmdclass = {'test': PyTest,
                 "build_configure": BuildConfigure,
                 "build_ext": BuildExtension},
-    ext_modules=[Extension('_pymitlm',
+    ext_modules=[Extension('pymitlm._pymitlm',
                            [
                              'pymitlm/pymitlm.i',
                            ],
@@ -105,5 +103,5 @@ setup(
                            swig_opts=['-c++'],
                            extra_compile_args=['-std=gnu++11', '-fPIC']
                           )],
-    py_modules=['pymitlm'],
+    py_modules=['pymitlm.pymitlm'],
 )

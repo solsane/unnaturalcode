@@ -125,6 +125,9 @@ class PyMitlm(_object):
 
     def xentropy(self, datas):
         return _pymitlm.PyMitlm_xentropy(self, datas)
+
+    def predict(self, data):
+        return _pymitlm.PyMitlm_predict(self, data)
 PyMitlm_swigregister = _pymitlm.PyMitlm_swigregister
 PyMitlm_swigregister(PyMitlm)
 
