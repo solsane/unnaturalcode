@@ -44,14 +44,19 @@ class JsValidationFile(ValidationFile):
 class JsValidation(ModelValidation):
     
     def __init__(self, 
-                 source=None, 
+                 test=None, 
+                 train=None,
                  resultsDir=None,
-                 corpus=mitlmCorpus):
+                 corpus=mitlmCorpus,
+                 keep=False):
        self.languageValidationFile = JsValidationFile
-       super(JsValidation,self).__init__(source=source,
-                                             language=jsSource,
-                                             resultsDir=resultsDir,
-                                             corpus=mitlmCorpus)
+       super(JsValidation,self).__init__(
+         test=test,
+         train=train,
+         language=jsSource,
+         resultsDir=resultsDir,
+         corpus=mitlmCorpus,
+         keep=keep)
     def get_error(self, fi):
         return fi.get_error()
 

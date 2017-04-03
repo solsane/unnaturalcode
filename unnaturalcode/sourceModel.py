@@ -18,6 +18,7 @@
 from unnaturalcode.ucUtil import *
 from unnaturalcode.mitlmCorpus import *
 from unnaturalcode.pythonSource import *
+from unnaturalcode.unnaturalCode import ucLexeme
 from operator import itemgetter
 
 from logging import debug, info, warning, error
@@ -51,7 +52,15 @@ class sourceModel(object):
 
     def trainLexemes(self, lexemes):
         """Train on a lexeme sequence."""
-        return self.cm.addToCorpus(self.stringifyAll(lexemes))
+        lexemes = lexemes.scrubbed()
+        windowlen = self.windowSize
+        padding = windowlen
+        lstrings = self.stringifyAll(lexemes)
+        qstrings = ((["/*<START>*/"] * windowlen)
+                    + lstrings 
+                    + (["/*<END>*/"] * windowlen)
+                   )
+        return self.cm.addToCorpus(qstrings)
 
     def trainString(self, sourceCode):
         """Train on a source code string"""
@@ -89,6 +98,56 @@ class sourceModel(object):
         lexemes = lexemes.scrubbed()
         unsorted = self.windowedQuery(lexemes)
         return sorted(unsorted, key=itemgetter(1), reverse=True)
+    
+    def unwindowedQuery(self, lexemes):
+        lexemes = lexemes.scrubbed()
+        windowlen = self.windowSize
+        padding = windowlen
+        lstrings = self.stringifyAll(lexemes)
+        content_len = len(lstrings)
+        content_start = padding
+        content_end = padding + content_len
+        qstrings = ((["/*<START>*/"] * windowlen)
+                    + lstrings 
+                    + (["/*<END>*/"] * windowlen)
+                   )
+        start_pos = lexemes[0].start
+        end_pos = lexemes[-1].end
+        qtokens = (([ucLexeme(("LMStartPadding", "", start_pos, start_pos, "/*<START>*/"))]
+                      * windowlen)
+                    + lexemes
+                    + ([ucLexeme(("LMEndPadding", "", end_pos, end_pos, "/*<END>*/"))]
+                       * windowlen)
+                   )
+        total_len = len(qstrings)
+        window_entropies = []
+        windows = []
+        unwindow_entropies = []
+        for token_i in range(0, total_len):
+            qstart = max(0,token_i+1-windowlen)
+            qend = token_i+1
+            query = qstrings[qstart:qend]
+            windows.append(qtokens[qstart:qend])
+            window_entropies.append(self.cm.queryCorpus(query))
+            if token_i >= content_start and token_i < content_end:
+                """
+                This part is magical. It comes from building an array with a moving
+                band of 1s representing the window and then inverting it.
+                It could be made non-quadratic if necessary by saving earlier sums
+                and reusing them.
+                """
+                unwindow_entropies.append(
+                    sum([window_entropies[i] for i in xrange(token_i,-1,-windowlen)])
+                    - sum([window_entropies[i] for i in xrange(token_i-1,-1,-windowlen)])
+                )
+            else:
+                unwindow_entropies.append(0) # don't consider padding tokens
+        windows = zip(windows, window_entropies)
+        windows = windows[content_start:content_end]
+        unwindows = zip(qtokens, unwindow_entropies)
+        unwindows = unwindows[content_start:content_end]
+        return (sorted(windows, key=itemgetter(1), reverse=True),
+                sorted(unwindows, key=itemgetter(1), reverse=True))
 
     def release(self):
         self.cm.release()

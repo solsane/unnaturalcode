@@ -37,10 +37,6 @@ import os, re, site
 
 from unnaturalcode import flexibleTokenize
 
-import pdb
-
-
-
 nonWord = re.compile('\\W+')
 beginsWithWhitespace = re.compile('^\\w')
 numeric = re.compile('[0-9]')
@@ -78,7 +74,7 @@ class ValidationFile(object):
         
 class ModelValidation(object):
     
-    def addValidationFile(self, files):
+    def addValidationFile(self, files, training, testing):
           """Add a file for validation..."""
           files = [files] if isinstance(files, str) else files
           assert isinstance(files, list)
@@ -87,9 +83,12 @@ class ModelValidation(object):
           for fi in files:
             try:
                 vfi = self.languageValidationFile(fi, self.lm, self.resultsDir)
-                if len(vfi.lexed) > self.sm.windowSize:
-                    self.validFiles.append(vfi)
-                    info("Using %s in %s mode." % (fi, vfi.mode))
+                if training:
+                    self.trainFiles.append(vfi)
+                    info("Using %s for training." % (fi))
+                if (len(vfi.lexed) > self.sm.windowSize) and testing:
+                    self.testFiles.append(vfi)
+                    info("Using %s in %s mode for testing." % (fi, vfi.mode))
                     nAdded += 1
             except:
                 info("Skipping %s !!!" % (fi), exc_info=sys.exc_info())
@@ -98,7 +97,7 @@ class ModelValidation(object):
     
     def genCorpus(self):
           """Create the corpus from the known-good file list."""
-          for fi in self.validFiles:
+          for fi in self.trainFiles:
             self.sm.trainLexemes(fi.scrubbed)
     
     def validate(self, mutation, n):
@@ -108,7 +107,7 @@ class ModelValidation(object):
         ttn = 0 # total in top n
         n_so_far = 0
         assert n > 0
-        for fi in self.validFiles:
+        for fi in self.testFiles:
           assert isinstance(fi, ValidationFile)
           if fi.path in self.progress:
             progress = self.progress[fi.path]
@@ -125,13 +124,17 @@ class ModelValidation(object):
               online = True
             else:
               online = False
-            worst = self.sm.worstWindows(fi.mutatedLexemes)
+            worst, un = self.sm.unwindowedQuery(fi.mutatedLexemes)
             for uc_result in range(0, len(worst)):
                 #debug(str(worst[i][0][0].start) + " " + str(fi.mutatedLocation.start) + " " + str(worst[i][1]))
                 if ((worst[uc_result][0][0].start 
                      <= fi.mutatedLocation.start) 
                     and worst[uc_result][0][-1].end >= fi.mutatedLocation.end):
                     #debug(">>>> Rank %i (%s)" % (i, fi.path))
+                    break
+            for line_result in range(0, len(worst)):
+                if un[line_result][0].start.line == fi.mutatedLocation.start.line:
+                    info(" ".join(map(str,(un[0][0].start.line, worst[0][0][10].start.line, fi.mutatedLocation.start.line))))
                     break
             info(" ".join(map(str, [mutation.__name__, uc_result, fi.mutatedLocation.start.line, exceptionName, line])))
             if uc_result >= len(worst):
@@ -151,11 +154,13 @@ class ModelValidation(object):
               filename,
               line,
               func,
-              worst[uc_result][0][0].start.line])
+              worst[uc_result][0][0].start.line,
+              un[0][0].start.line,
+              line_result])
             self.csvFile.flush()
-            trr += 1/float(uc_result+1)
-            tr += float(uc_result+1)
-            if uc_result < 5:
+            trr += 1/float(line_result+1)
+            tr += float(line_result+1)
+            if line_result < 5:
                 ttn += 1
             n_so_far += 1
             mrr = trr/float(n_so_far)
@@ -165,18 +170,25 @@ class ModelValidation(object):
             
       
     def __init__(self, 
-                 source=None, 
+                 test=None,
+                 train=None,
                  language=pythonSource, 
                  resultsDir=None,
-                 corpus=mitlmCorpus):
+                 corpus=mitlmCorpus,
+                 keep=False):
         self.resultsDir = ((resultsDir or os.getenv("ucResultsDir", None)) or mkdtemp(prefix='ucValidation-'))
-        if isinstance(source, str):
+        if isinstance(test, str):
             raise NotImplementedError
-        elif isinstance(source, list):
-            self.validFileNames = source
+        elif isinstance(test, list):
+            self.testFileNames = test
         else:
             raise TypeError("Constructor arguments!")
-
+        if isinstance(train, str):
+            raise NotImplementedError
+        elif isinstance(train, list):
+            self.trainFileNames = train
+        else:
+            raise TypeError("Constructor arguments!")
         assert os.access(self.resultsDir, os.X_OK & os.R_OK & os.W_OK)
         self.csvPath = path.join(self.resultsDir, 'results.csv')
         self.progress = dict()
@@ -194,12 +206,19 @@ class ModelValidation(object):
         self.csvFile = open(self.csvPath, 'a')
         self.csv = csv.writer(self.csvFile)
         self.corpusPath = os.path.join(self.resultsDir, 'validationCorpus')
+        if keep:
+            pass
+        elif os.path.exists(self.corpusPath):
+            os.remove(self.corpusPath)
         self.cm = corpus(readCorpus=self.corpusPath, writeCorpus=self.corpusPath, order=10)
         self.lm = language
         self.sm = sourceModel(cm=self.cm, language=self.lm)
-        self.validFiles = list()
-        self.addValidationFile(self.validFileNames)
+        self.trainFiles = list()
+        self.testFiles = list()
+        self.addValidationFile(self.trainFileNames, testing=False, training=True)
         self.genCorpus()
+        del self.trainFiles
+        self.addValidationFile(self.testFileNames, testing=True, training=False)
 
     def release(self):
         """Close files and stop MITLM"""
@@ -224,24 +243,26 @@ class ValidationMain(object):
         from argparse import ArgumentParser
         parser = ArgumentParser(description="Test and Valide UnnaturalCode")
         parser.add_argument('-t', '--test-file-list', nargs='?', help='List of files to Test')
+        parser.add_argument('-T', '--train-file-list', nargs='?', help='List of files to train on. Default same as test.')
+        parser.add_argument('-k', '--keep-corpus', action='store_true', help="Don't reset the corpus")
         parser.add_argument('-n', '--iterations', type=int, help='Number of times to iterate', default=50)
         parser.add_argument('-o', '--output-dir', help='Location to store output files', default='.')
         parser.add_argument('-m', '--mutation', help='Mutation to use', required=True)
-        parser.add_argument('-M', '--mitlm', help='Location of MITLM binary')
         self.add_args(parser) # get more args from subclasses
         args=parser.parse_args()
         logging.getLogger().setLevel(logging.DEBUG)
         testFileList = args.test_file_list
+        trainFileList = testFileList
+        if args.train_file_list:
+            trainFileList = args.train_file_list
         testProjectFiles = open(testFileList).read().splitlines()
-        
-        if (args.mitlm):
-            os.environ["ESTIMATENGRAM"] = args.mitlm
-            os.environ["LD_LIBRARY_PATH"] = os.path.dirname(args.mitlm)
-            error(os.environ["LD_LIBRARY_PATH"])
+        trainProjectFiles = open(trainFileList).read().splitlines()
         
         self.read_args(args)
-        v = self.validation(source=testProjectFiles, 
-                            corpus=mitlmCorpus, 
+        v = self.validation(test=testProjectFiles,
+                            train=trainProjectFiles,
+                            keep=args.keep_corpus,
+                            corpus=mitlmCorpus,
                             resultsDir=args.output_dir)
         
         v.validate(mutation=getattr(Mutators, args.mutation), n=args.iterations)

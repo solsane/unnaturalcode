@@ -66,7 +66,7 @@ class jsSource(ucSource):
                     d["value"], 
                     ucPos(d["loc"]["start"]["line"], d["loc"]["start"]["column"]),
                     ucPos(d["loc"]["end"]["line"], d["loc"]["end"]["column"]),
-                    d["value"], 
+                    string, 
                 ))
     
     def lex(self, code):
