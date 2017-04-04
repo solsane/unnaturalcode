@@ -20,27 +20,15 @@ sudo wget https://raw.github.com/zeromq/cppzmq/master/zmq.hpp \
     -O /usr/include/zmq.hpp
 ```
 
-### Get/install modified mitlm:
+## Build and Install in a Virtual Environment
 
-```bash
-git clone \
-    https://github.com/orezpraw/MIT-Language-Modeling-Toolkit.git mitlm
-cd mitlm
-./autogen.sh
-make
-sudo make install
-sudo ldconfig
 ```
-
-# Install UnnaturalCode
-
-
-```bash
-. source_this.sh
+git submodule init
+git submodule update --recursive --remote
+virtualenv venv
+source venv/bin/activate
+pip install -e .
 ```
-
-It does everything, including creating a virtual environment if it does
-not exist.
 
 # Testing
 
