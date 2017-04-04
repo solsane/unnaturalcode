@@ -27,7 +27,7 @@ class JSTokenizer(object):
         self.js = js
         self.tf = tempfile.NamedTemporaryFile('w+b')
         #self.tf.truncate(pagesize)
-        self.tf.truncate(1024*1024*100)
+        self.tf.truncate(1024*1024*1024)
         self.mm = mmap.mmap(self.tf.fileno(), 0)
         js.call('tokenize.connect', self.tf.name, self.mm.size())
     
