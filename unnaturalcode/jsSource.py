@@ -38,8 +38,10 @@ class jsSource(ucSource):
         string = d["value"]
         if d["type"] == "String":
             string = '"string"'
-        #if d["type"] == "Identifier":
-            #string = 'Identifier'
+        if d["type"] == "Identifier":
+            string = 'Identifier'
+        if d["type"] == "Numeric":
+            string = '0'
         elif d["type"] == "RegularExpression":
             string = '/regexp/'
         elif d["type"] == "Template":

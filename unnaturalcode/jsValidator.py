@@ -48,7 +48,9 @@ class JsValidation(ModelValidation):
                  train=None,
                  resultsDir=None,
                  corpus=mitlmCorpus,
-                 keep=False):
+                 keep=False,
+                 *args,
+                 **kwargs):
        self.languageValidationFile = JsValidationFile
        super(JsValidation,self).__init__(
          test=test,
@@ -56,7 +58,9 @@ class JsValidation(ModelValidation):
          language=jsSource,
          resultsDir=resultsDir,
          corpus=mitlmCorpus,
-         keep=keep)
+         keep=keep,
+         *args,
+         **kwargs)
     def get_error(self, fi):
         return fi.get_error()
 

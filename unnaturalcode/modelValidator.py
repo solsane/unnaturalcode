@@ -65,12 +65,18 @@ class ValidationFile(object):
         self.mutatedLocation = None
         self.tempDir = tempDir
     
-    def mutate(self, lexemes, location):
+    def mutate(self, lexemes, locationPrev, location, locationNext):
         assert isinstance(lexemes, ucSource)
         #self.mutatedLexemes = self.lm(lexemes.deLex())
         self.mutatedLexemes = lexemes
+        self.mutatedLocationPrev = locationPrev
         self.mutatedLocation = location
-        
+        self.mutatedLocationNext = locationNext
+        assert self.mutatedLocationPrev.end <= self.mutatedLocation.start, (
+          repr(self.mutatedLocationPrev.end) + " </= " + repr(self.mutatedLocation.start)
+          + "\n" + repr(self.lexed))
+        assert self.mutatedLocation.end <= self.mutatedLocationNext.start, (
+          repr(self.mutatedLocation.end) + " </= " + repr(self.mutatedLocationNext.start))
         
 class ModelValidation(object):
     
@@ -108,6 +114,9 @@ class ModelValidation(object):
         ltrr = 0 # total reciprocal rank
         ltr = 0 # total rank
         lttn = 0 # total in top n
+        ttrr = 0 # total reciprocal rank
+        ttr = 0 # total rank
+        tttn = 0 # total in top n
         n_so_far = 0
         assert n > 0
         for fi in self.testFiles:
@@ -123,6 +132,11 @@ class ModelValidation(object):
               info(merror)
               break
             filename, line, func, text, exceptionName = self.get_error(fi)
+            if self.retry_valid:
+                while exceptionName is None:
+                    info("Syntatically valid mutant, retrying.")
+                    merror = mutation(mutators, fi)
+                    filename, line, func, text, exceptionName = self.get_error(fi)
             if (fi.mutatedLocation.start.line == line):
               online = True
             else:
@@ -135,7 +149,7 @@ class ModelValidation(object):
                     and worst[uc_result][0][-1].end >= fi.mutatedLocation.end):
                     #debug(">>>> Rank %i (%s)" % (i, fi.path))
                     break
-            for line_result in range(0, len(worst)):
+            for line_result in range(0, len(un)):
                 if (un[line_result][0].start.line == fi.mutatedLocation.start.line):
                   info(" ".join(map(str,(un[0][0].start.line, worst[0][0][10].start.line, fi.mutatedLocation.start.line))))
                   break
@@ -145,7 +159,17 @@ class ModelValidation(object):
                   #else:
                     #line_result += 20
                     #break
-                
+            tok_result_rank_found = False
+            for tok_result in range(0, len(un)):
+                if (un[tok_result][0].start >= fi.mutatedLocationPrev.end) and (un[tok_result][0].start <= fi.mutatedLocationNext.start):
+                  info(" ".join(map(str,(un[0][0].start, worst[0][0][10].start, fi.mutatedLocation.start))))
+                  tok_result_rank_found = True
+                  break
+            if not tok_result_rank_found:
+                error(repr(fi.mutatedLocationPrev.end) + " < " + " > " + repr(fi.mutatedLocationNext.start))
+                for tok_result in range(0, 20):
+                    error(" > " + repr(un[tok_result][0].start) + " " + repr(un[tok_result][0].start) + " < ")
+                assert(False)
             info(" ".join(map(str, [mutation.__name__, uc_result, fi.mutatedLocation.start.line, exceptionName, line])))
             if uc_result >= len(worst):
               error(repr(worst))
@@ -166,7 +190,8 @@ class ModelValidation(object):
               func,
               worst[uc_result][0][0].start.line,
               un[0][0].start.line,
-              line_result])
+              line_result,
+              tok_result])
             self.csvFile.flush()
             wtrr += 1/float(uc_result+1)
             wtr += float(uc_result+1)
@@ -176,6 +201,10 @@ class ModelValidation(object):
             ltr += float(line_result+1)
             if line_result < 5:
                 lttn += 1
+            ttrr += 1/float(tok_result+1)
+            ttr += float(tok_result+1)
+            if tok_result < 5:
+                tttn += 1
             n_so_far += 1
             wmrr = wtrr/float(n_so_far)
             wmr = wtr/float(n_so_far)
@@ -185,6 +214,10 @@ class ModelValidation(object):
             lmr = ltr/float(n_so_far)
             lmtn = lttn/float(n_so_far)
             info("Line MRR %f MR %f M5+ %f" % (lmrr, lmr, lmtn))
+            tmrr = ttrr/float(n_so_far)
+            tmr = ttr/float(n_so_far)
+            tmtn = tttn/float(n_so_far)
+            info("Token MRR %f MR %f M5+ %f" % (tmrr, tmr, tmtn))
       
     def __init__(self, 
                  test=None,
@@ -192,8 +225,10 @@ class ModelValidation(object):
                  language=pythonSource, 
                  resultsDir=None,
                  corpus=mitlmCorpus,
-                 keep=False):
+                 keep=False,
+                 retry_valid=False):
         self.resultsDir = ((resultsDir or os.getenv("ucResultsDir", None)) or mkdtemp(prefix='ucValidation-'))
+        self.retry_valid = retry_valid
         if isinstance(test, str):
             raise NotImplementedError
         elif isinstance(test, list):
@@ -265,6 +300,7 @@ class ValidationMain(object):
         parser.add_argument('-n', '--iterations', type=int, help='Number of times to iterate', default=50)
         parser.add_argument('-o', '--output-dir', help='Location to store output files', default='.')
         parser.add_argument('-m', '--mutation', help='Mutation to use', required=True)
+        parser.add_argument('-r', '--retry-valid', action='store_true', help='Retry until a syntactically incorrect mutation is found')
         self.add_args(parser) # get more args from subclasses
         args=parser.parse_args()
         logging.getLogger().setLevel(logging.DEBUG)
@@ -280,7 +316,8 @@ class ValidationMain(object):
                             train=trainProjectFiles,
                             keep=args.keep_corpus,
                             corpus=mitlmCorpus,
-                            resultsDir=args.output_dir)
+                            resultsDir=args.output_dir,
+                            retry_valid=args.retry_valid)
         
         v.validate(mutation=getattr(Mutators, args.mutation), n=args.iterations)
         # TODO: assert csvs

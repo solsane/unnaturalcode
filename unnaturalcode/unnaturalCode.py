@@ -108,15 +108,17 @@ class ucLexeme(tuple):
         def __init__(self, *args):
             assert len(self) == 5
             assert self[0]
-            assert isinstance(self[0], str)
-            assert len(self[0] > 0)
-            assert isinstance(self[1], str)
-            assert len(self[1] > 0)
+            assert isinstance(self[0], basestring), self[0]
+            assert len(self[0]) > 0
+            assert isinstance(self[1], basestring)
+            assert (len(self[1]) > 0 
+                    or self[0] == "LMEndPadding"
+                    or self[0] == "LMStartPadding"), repr(self)
             assert isinstance(self[2], ucPos)
             assert isinstance(self[3], ucPos)
             assert self[2] <= self[3], "%s > %s" % (self[2], self[3])
-            assert isinstance(self[4], str)
-            assert len(self[4] > 0)
+            assert isinstance(self[4], basestring)
+            assert len(self[4]) > 0
             
     
     def __getattr__(self, name):
@@ -245,7 +247,7 @@ class ucSource(list):
       #debug(str(start) + "-" + str(end))
       for i in range(start, end-1):
         assert isinstance(self[i], ucLexeme)
-        assert self[i].end <= self[i+1].start, "In file: %s %s"  % (currentValidationFileForDebuggingPurposesOnly, ""+repr(self[i:i+2]))
+        assert self[i].end <= self[i+1].start, repr(self[i:i+2])
     
     if ucParanoid:
         def extend(self, arg):
@@ -276,16 +278,12 @@ class ucSource(list):
         oldend = self[-1].end.l
         for j in range(0, len(a)):
           ((startL, startC), (endL, endC)) = (a[j].start, a[j].end)
-          if j == 0:
-            startC += 1
           if startL == 1:
             startC += self[i].start.c
           if endL == 1:
             endC += self[i].start.c
           startL += self[i].start.l-1
           endL += self[i].start.l-1
-          if j == len(a)-1:
-            endC += 1
           a[j] = a[j].__class__((a[j][0], a[j][1], ucPos((startL, startC)), ucPos((endL, endC)), a[j][4]))
         for j in range(i, len(self)):
           ((startL, startC), (endL, endC)) = (self[j].start, self[j].end)
