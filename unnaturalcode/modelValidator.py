@@ -102,9 +102,12 @@ class ModelValidation(object):
     
     def validate(self, mutation, n):
         """Run main validation loop."""
-        trr = 0 # total reciprocal rank
-        tr = 0 # total rank
-        ttn = 0 # total in top n
+        wtrr = 0 # total reciprocal rank
+        wtr = 0 # total rank
+        wttn = 0 # total in top n
+        ltrr = 0 # total reciprocal rank
+        ltr = 0 # total rank
+        lttn = 0 # total in top n
         n_so_far = 0
         assert n > 0
         for fi in self.testFiles:
@@ -133,9 +136,16 @@ class ModelValidation(object):
                     #debug(">>>> Rank %i (%s)" % (i, fi.path))
                     break
             for line_result in range(0, len(worst)):
-                if un[line_result][0].start.line == fi.mutatedLocation.start.line:
-                    info(" ".join(map(str,(un[0][0].start.line, worst[0][0][10].start.line, fi.mutatedLocation.start.line))))
-                    break
+                if (un[line_result][0].start.line == fi.mutatedLocation.start.line):
+                  info(" ".join(map(str,(un[0][0].start.line, worst[0][0][10].start.line, fi.mutatedLocation.start.line))))
+                  break
+                  #if ((un[line_result][0].start >= worst[0][0][0].start)
+                    #and (un[line_result][0].end <= worst[0][0][-1].end)):
+                    #break
+                  #else:
+                    #line_result += 20
+                    #break
+                
             info(" ".join(map(str, [mutation.__name__, uc_result, fi.mutatedLocation.start.line, exceptionName, line])))
             if uc_result >= len(worst):
               error(repr(worst))
@@ -158,16 +168,23 @@ class ModelValidation(object):
               un[0][0].start.line,
               line_result])
             self.csvFile.flush()
-            trr += 1/float(line_result+1)
-            tr += float(line_result+1)
+            wtrr += 1/float(uc_result+1)
+            wtr += float(uc_result+1)
+            if uc_result < 5:
+                wttn += 1
+            ltrr += 1/float(line_result+1)
+            ltr += float(line_result+1)
             if line_result < 5:
-                ttn += 1
+                lttn += 1
             n_so_far += 1
-            mrr = trr/float(n_so_far)
-            mr = tr/float(n_so_far)
-            mtn = ttn/float(n_so_far)
-            info("MRR %f MR %f M5+ %f" % (mrr, mr, mtn))
-            
+            wmrr = wtrr/float(n_so_far)
+            wmr = wtr/float(n_so_far)
+            wmtn = wttn/float(n_so_far)
+            info("Window MRR %f MR %f M5+ %f" % (wmrr, wmr, wmtn))
+            lmrr = ltrr/float(n_so_far)
+            lmr = ltr/float(n_so_far)
+            lmtn = lttn/float(n_so_far)
+            info("Line MRR %f MR %f M5+ %f" % (lmrr, lmr, lmtn))
       
     def __init__(self, 
                  test=None,

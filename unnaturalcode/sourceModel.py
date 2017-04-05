@@ -128,20 +128,25 @@ class sourceModel(object):
             qend = token_i+1
             query = qstrings[qstart:qend]
             windows.append(qtokens[qstart:qend])
-            window_entropies.append(self.cm.queryCorpus(query))
-            if token_i >= content_start and token_i < content_end:
-                """
-                This part is magical. It comes from building an array with a moving
-                band of 1s representing the window and then inverting it.
-                It could be made non-quadratic if necessary by saving earlier sums
-                and reusing them.
-                """
-                unwindow_entropies.append(
-                    sum([window_entropies[i] for i in xrange(token_i,-1,-windowlen)])
-                    - sum([window_entropies[i] for i in xrange(token_i-1,-1,-windowlen)])
-                )
-            else:
-                unwindow_entropies.append(0) # don't consider padding tokens
+            entropy = self.cm.queryCorpus(query)
+            window_entropies.append(entropy)
+            unwindow_entropies.append(0)
+            for token_j in range(qstart, qend):
+                unwindow_entropies[token_j] += window_entropies[token_i]/(qend-qstart)
+            #if token_i >= content_start and token_i < content_end:
+                #"""
+                #This part is magical. It comes from building an array with a moving
+                #band of 1s representing the window and then inverting it.
+                #It could be made non-quadratic if necessary by saving earlier sums
+                #and reusing them.
+                #Apprently doesn't work that well, however.
+                #"""
+                #unwindow_entropies.append(
+                    #sum([window_entropies[i] for i in xrange(token_i,-1,-windowlen)])
+                    #- sum([window_entropies[i] for i in xrange(token_i-1,-1,-windowlen)])
+                #)
+            #else:
+                #unwindow_entropies.append(0) # don't consider padding tokens
         windows = zip(windows, window_entropies)
         windows = windows[content_start:content_end]
         unwindows = zip(qtokens, unwindow_entropies)

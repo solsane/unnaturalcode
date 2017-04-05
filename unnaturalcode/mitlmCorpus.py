@@ -46,7 +46,7 @@ class mitlmCorpus(object):
         if self.mitlm == None:
             self.mitlm = pymitlm.PyMitlm(self.readCorpus,
                              self.order,
-                             "ModKN",
+                             "KN",
                              True)
     def corpify(self, lexemes):
         """Stringify lexed source: produce space-seperated sequence of lexemes"""
@@ -84,9 +84,10 @@ class mitlmCorpus(object):
     def queryCorpus(self, request):
         self.startMitlm()
         r = self.mitlm.xentropy((" ".join(request)).encode("UTF-8"))
-        if r >= 70.0:
+        if r >= 1.0e70:
           qString = self.corpify(request)
           warning("Infinity: %s" % qString)
+          warning(str(r))
           self.checkMitlm()
         return r
 

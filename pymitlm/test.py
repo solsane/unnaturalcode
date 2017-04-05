@@ -7,17 +7,31 @@ from copy import copy
 print("import")
 w = 5
 padding = w * 2
-test = "a b c d e f g"
+test = "a b c d e f g h"
 cd = len(test.split(" "))
 cstart = padding
 cend = padding + cd
 test = "S " * padding + test + " E" * padding
 with open("testcorpus", "w") as testcorpus:
-    for i in range(0, 10):
+    for i in range(0, 1000):
         print(test, file=testcorpus)
-m = pymitlm.PyMitlm("testcorpus", 10, "ModKN", True)
+    print("S " * padding + "a b c d e f g H"  + " E" * padding, file=testcorpus)
+    print("S " * padding + "a b c d e f g H"  + " E" * padding, file=testcorpus)
+    print("S " * padding + "a b c x e f g h"  + " E" * padding, file=testcorpus)
+    print("S <unk> E", file=testcorpus)
+m = pymitlm.PyMitlm("testcorpus", 10, "KN", True)
 print("init")
-print(m.predict("a b c d"))
+def testx(string):
+      print("Testing %s" % string)
+      print("Result %e" % m.xentropy(string))
+testx("a b c d e f g h E E")
+#testx("a b c a e f g")
+testx("a b c x e f g h E E")
+testx("x")
+testx("a")
+testx("a x")
+
+#assert False
 arr = test.split(" ")
 d = len(arr)
 
