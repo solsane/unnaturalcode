@@ -123,6 +123,9 @@ class ModelValidation(object):
         n_so_far = 0
         trues = 0
         valids = 0
+        deletions = 0
+        insertions = 0
+        substitutions = 0
         assert n > 0
         for fi in self.testFiles:
           assert isinstance(fi, ValidationFile)
@@ -195,6 +198,12 @@ class ModelValidation(object):
                 else:
                     fix = "ValidFix"
                     valids += 1
+                if fixop = "Delete":
+                    deletions += 1
+                elif fixop = "Insert"
+                    insertions += 1
+                elif fixop = "Replace"
+                    substitutions += 1
             info(fix + " " + fixop)
             if uc_result >= len(worst):
               error(repr(worst))
@@ -246,11 +255,15 @@ class ModelValidation(object):
             tmrr = ttrr/float(n_so_far)
             tmr = ttr/float(n_so_far)
             tmtn = tttn/float(n_so_far)
+            info("Token MRR %f MR %f M5+ %f" % (tmrr, tmr, tmtn))
             no = float(n_so_far-valids)/float(n_so_far)
             true = float(valids)/float(n_so_far)
             valid = float(trues)/float(n_so_far)
-            info("Token MRR %f MR %f M5+ %f" % (tmrr, tmr, tmtn))
             info("Fix No %f Valid %f True %f " % (no, true, valid))
+            delete_ = float(deletions)/float(n_so_far)
+            insert_ = float(insertions)/float(n_so_far)
+            subs_ = float(replacements)/float(n_so_far)
+            info("Fix D %f I %f R %f " % (delete_, insert_, subs_))
       
     def __init__(self, 
                  test=None,
@@ -295,6 +308,10 @@ class ModelValidation(object):
             pass
         elif os.path.exists(self.corpusPath):
             os.remove(self.corpusPath)
+        if keep:
+            pass
+        elif os.path.exists(self.corpusPath + ".uniqueTokens"):
+            os.remove(self.corpusPath + ".uniqueTokens")
         self.cm = corpus(readCorpus=self.corpusPath, writeCorpus=self.corpusPath, order=10)
         self.lm = language
         self.sm = sourceModel(cm=self.cm, language=self.lm)

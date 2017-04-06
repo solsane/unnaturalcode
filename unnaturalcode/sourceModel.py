@@ -21,6 +21,8 @@ from unnaturalcode.pythonSource import *
 from unnaturalcode.unnaturalCode import ucLexeme
 from operator import itemgetter
 from logging import debug, info, warning, error
+import os.path
+import pickle
 
 class sourceModel(object):
 
@@ -29,6 +31,11 @@ class sourceModel(object):
         self.lang = language
         self.windowSize = windowSize
         self.listOfUniqueTokens = {}
+        self.uTokenFile = self.cm.writeCorpus + ".uniqueTokens"
+        readTokenFile = self.cm.readCorpus + ".uniqueTokens"
+        if os.path.isfile(readTokenFile):
+          with open(readTokenFile, "rb") as f:
+            self.listOfUniqueTokens = pickle.load(f)
 
     def trainFile(self, files):
         """Blindly train on a set of files whether or not it compiles..."""
@@ -55,6 +62,8 @@ class sourceModel(object):
         for l in lexemes:
             if l[4] not in self.listOfUniqueTokens:
                 self.listOfUniqueTokens[l[4]] = l
+        with open(self.uTokenFile, "wb") as f:
+            pickle.dump(self.listOfUniqueTokens, f)
         windowlen = self.windowSize
         padding = windowlen
         lstrings = self.stringifyAll(lexemes)
