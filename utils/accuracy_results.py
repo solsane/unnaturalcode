@@ -67,8 +67,8 @@ cols = [
 ]
 
 hilite = set([
-  ('insertRandom', 'Insert'),
-  ('deleteRandom', 'Delete'),        
+  ('insertRandom', 'Delete'),
+  ('deleteRandom', 'Insert'),        
   ('replaceRandom', 'Replace'),        
   ])
 
@@ -81,7 +81,7 @@ print(r"""
 %
 \begin{tabular}{@{}lrrrrrrrrrrrr@{}}
 \toprule
-             &                          \multicolumn{6}{c}{Fix created by \tool}                               &                               \multicolumn{6}{c}{Summary}                                 \\
+             &                          \multicolumn{6}{c}{Fix created by 10-gram model}                               &                               \multicolumn{6}{c}{Summary}                                 \\
 \cmidrule(r){2-7} \cmidrule{8-13}
              & \multicolumn{2}{c}{Insertion} & \multicolumn{2}{c}{Deletion} & \multicolumn{2}{c}{Substitution} & \multicolumn{2}{c}{No fix} & \multicolumn{2}{c}{Valid fix} & \multicolumn{2}{c}{True fix} \\
  Mutation    & Total        & \%             & Total        & \%            & Total          & \%              & Total        & \%          & Total          & \%           & Total        & \%            \\
