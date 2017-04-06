@@ -94,7 +94,7 @@ for row, name in rows:
         t = ""
         if (row, col) in hilite:
           t += "\\highlight{"
-        t += "%.2f\\%%" % (acc_tab[row][col]/acc_tab[row]['total'])*100.0
+        t += "%.2f\\%%" % ((acc_tab[row][col]/acc_tab[row]['total'])*100.0,)
         if (row, col) in hilite:
           t += "}"
         rowdata.append(t)
