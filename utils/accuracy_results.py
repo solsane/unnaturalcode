@@ -89,7 +89,7 @@ print(r"""
 """.strip())
 # Print each row (mutation) in the table
 for row, name in rows:
-    rowdata = []
+    rowdata = [name]
     for col in cols:
         t = ""
         if (row, col) in hilite:
