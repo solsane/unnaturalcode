@@ -278,24 +278,36 @@ class ucSource(list):
         oldend = self[-1].end.l
         for j in range(0, len(a)):
           ((startL, startC), (endL, endC)) = (a[j].start, a[j].end)
+          #info(repr(self[i-1]))
+          #info(repr(a[j]))
+          #info(repr(self[i]))
           if startL == 1:
-            startC += self[i].start.c
+            startC += self[i-1].end.c
           if endL == 1:
-            endC += self[i].start.c
-          startL += self[i].start.l-1
-          endL += self[i].start.l-1
+            endC += self[i-1].end.c
+          startL += self[i-1].end.l-1
+          endL += self[i-1].end.l-1
           a[j] = a[j].__class__((a[j][0], a[j][1], ucPos((startL, startC)), ucPos((endL, endC)), a[j][4]))
+          #info(" >" + repr(self[i-1]))
+          #info(" >" + repr(a[j]))
+          #info(" >" + repr(self[i]))
         for j in range(i, len(self)):
           ((startL, startC), (endL, endC)) = (self[j].start, self[j].end)
           if startL == a[-1].end.l:
-            startC += width
+            startC += width+1
           if endL == a[-1].start.l:
-            endC += width
+            endC += width+1
           startL += height
           endL += height
           self[j:j+1] = [self[j].__class__((self[j][0], self[j][1], ucPos((startL, startC)), ucPos((endL, endC)), self[j][4]))]
+        #info(" >>" + repr(self[i-1]))
+        #info(" >>" + repr(a[0]))
+        #info(" >>" + repr(self[i]))
         for j in range(0, len(a)):
           r = super(ucSource, self).insert(i+j, a[j])
+        #info(" >>>" + repr(self[i-1]))
+        #info(" >>>" + repr(self[i]))
+        #info(" >>>" + repr(self[i+1]))
         #if ( self[-1].end.l > oldend +1):
           #info(str(self[-1].end.l) + " > " + str(oldend + 1))
           #assert(false, 'waugh!')

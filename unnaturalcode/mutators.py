@@ -8,39 +8,33 @@ class Mutators(object):
         """Delete a random token from a file."""
         ls = copy(vFile.scrubbed)
         idx = randint(1, len(ls)-2)
-        prev = ls[idx-1]
-        next_ = ls[idx+1]
         token = ls.pop(idx)
         if token.type == 'ENDMARKER':
           return self.deleteRandom(vFile)
-        vFile.mutate(ls, prev, token, next_)
+        vFile.mutate(ls, ls[idx-1], token, ls[idx])
         return None
             
     def insertRandom(self, vFile):
         ls = copy(vFile.scrubbed)
         token = ls[randint(0, len(ls)-1)]
         pos = randint(1, len(ls)-2)
-        prev = ls[pos-1]
         inserted = ls.insert(pos, token)
-        next_ = ls[pos+1]
         if inserted[0].type == 'ENDMARKER':
           return self.insertRandom(vFile)
-        vFile.mutate(ls, prev, inserted[0], next_)
+        vFile.mutate(ls, prev, ls[pos-1], ls[pos+1])
         return None
             
     def replaceRandom(self, vFile):
         ls = copy(vFile.scrubbed)
         token = ls[randint(0, len(ls)-1)]
         pos = randint(1, len(ls)-2)
-        prev = ls[pos-1]
-        next_ = ls[pos+1]
         oldToken = ls.pop(pos)
         if oldToken.type == 'ENDMARKER':
           return self.replaceRandom(vFile)
         inserted = ls.insert(pos, token)
         if inserted[0].type == 'ENDMARKER':
           return self.replaceRandom(vFile)
-        vFile.mutate(ls, prev, inserted[0], next_)
+        vFile.mutate(ls, ls[pos-1], inserted[0], ls[pos+1])
         return None
         
     def dedentRandom(self, vFile):
