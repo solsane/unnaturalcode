@@ -43,6 +43,8 @@ for arg in sys.argv[1:]:
             inc(mut_tab, 'total')
             inc(mut_tab, fix_operation)
             inc(mut_tab, fix_notruevalid)
+            if fix_notruevalid == 'TrueFix':
+                inc(mut_tab, 'ValidFix')
         
 rows = [
   ('insertRandom', 'Insertion'),

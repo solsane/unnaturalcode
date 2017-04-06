@@ -109,7 +109,7 @@ class ModelValidation(object):
           for fi in self.trainFiles:
             self.sm.trainLexemes(fi.scrubbed)
     
-    def validate(self, mutation, n):
+    def validate(self, mutations, n):
         """Run main validation loop."""
         wtrr = 0 # total reciprocal rank
         wtr = 0 # total rank
@@ -127,7 +127,8 @@ class ModelValidation(object):
         insertions = 0
         substitutions = 0
         assert n > 0
-        for fi in self.testFiles:
+        for mutation in mutations:
+         for fi in self.testFiles:
           assert isinstance(fi, ValidationFile)
           if fi.path in self.progress:
             progress = self.progress[(fi.path, mutation.__name__)]
@@ -181,7 +182,7 @@ class ModelValidation(object):
                     error(" > " + repr(un[tok_result][0].start) + " " + repr(un[tok_result][0].start) + " < ")
                 assert(False)
             info(" ".join(map(str, [mutation.__name__, uc_result, fi.mutatedLocation.start.line, exceptionName, line])))
-            fix_k = 2
+            fix_k = 4
             fix = "NoFix"
             validfix = False
             fixop = "None"
@@ -352,7 +353,7 @@ class ValidationMain(object):
         parser.add_argument('-k', '--keep-corpus', action='store_true', help="Don't reset the corpus")
         parser.add_argument('-n', '--iterations', type=int, help='Number of times to iterate', default=50)
         parser.add_argument('-o', '--output-dir', help='Location to store output files', default='.')
-        parser.add_argument('-m', '--mutation', help='Mutation to use', required=True)
+        parser.add_argument('-m', '--mutation', help='Mutation to use', required=True, action='append')
         parser.add_argument('-r', '--retry-valid', action='store_true', help='Retry until a syntactically incorrect mutation is found')
         self.add_args(parser) # get more args from subclasses
         args=parser.parse_args()
@@ -371,8 +372,8 @@ class ValidationMain(object):
                             corpus=mitlmCorpus,
                             resultsDir=args.output_dir,
                             retry_valid=args.retry_valid)
-        
-        v.validate(mutation=getattr(Mutators, args.mutation), n=args.iterations)
+        mutations=[getattr(Mutators, mutation) for mutation in args.mutation]
+        v.validate(mutations=mutations, n=args.iterations)
         # TODO: assert csvs
         v.release()
 
