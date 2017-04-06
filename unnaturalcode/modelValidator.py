@@ -200,9 +200,9 @@ class ModelValidation(object):
                     valids += 1
                 if fixop == "Delete":
                     deletions += 1
-                elif fixop == "Insert"
+                elif fixop == "Insert":
                     insertions += 1
-                elif fixop == "Replace"
+                elif fixop == "Replace":
                     substitutions += 1
             info(fix + " " + fixop)
             if uc_result >= len(worst):
