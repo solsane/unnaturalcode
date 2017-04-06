@@ -130,7 +130,7 @@ class ModelValidation(object):
         for fi in self.testFiles:
           assert isinstance(fi, ValidationFile)
           if fi.path in self.progress:
-            progress = self.progress[fi.path]
+            progress = self.progress[(fi.path, mutation.__name__)]
           else:
             progress = 0
           info("Testing " + str(progress) + "/" + str(n) + " " + fi.path)
@@ -223,7 +223,7 @@ class ModelValidation(object):
               line,
               func,
               worst[uc_result][0][0].start.line,
-              un[0][0].start.line,
+              un[tok_result][0].start.line,
               line_result,
               tok_result,
               fix,
@@ -297,10 +297,10 @@ class ModelValidation(object):
           self.csvFile = open(self.csvPath, 'r')
           self.csv = csv.reader(self.csvFile)
           for row in self.csv:
-            if row[0] in self.progress:
-              self.progress[row[0]] += 1 
+            if (row[0], row[1]) in self.progress:
+              self.progress[(row[0], row[1])] += 1 
             else:
-              self.progress[row[0]] = 1
+              self.progress[(row[0], row[1])] = 1
           self.csvFile.close()
         except (IOError):
           pass
