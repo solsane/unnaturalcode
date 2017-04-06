@@ -105,8 +105,7 @@ for row, name in rows:
         if (row, col) in hilite:
           t += "}"
         rowdata.append(t)
-    rowdata.append(r"\\")
-    print(" & ".join(rowdata))
+    print(" & ".join(rowdata) + r"\\")
 
 print(r"""
 \bottomrule
