@@ -73,10 +73,13 @@ class ValidationFile(object):
         self.mutatedLocation = location
         self.mutatedLocationNext = locationNext
         assert self.mutatedLocationPrev.end <= self.mutatedLocation.start, (
-          repr(self.mutatedLocationPrev.end) + " </= " + repr(self.mutatedLocation.start)
+          repr(self.mutatedLocationPrev.end) 
+          + " </= " + repr(self.mutatedLocation.start)
           + "\n" + repr(self.lexed))
         assert self.mutatedLocation.end <= self.mutatedLocationNext.start, (
-          repr(self.mutatedLocation.end) + " </= " + repr(self.mutatedLocationNext.start))
+          repr(self.mutatedLocation.end) 
+          + " </= " 
+          + repr(self.mutatedLocationNext.start))
         
 class ModelValidation(object):
     

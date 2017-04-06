@@ -21,7 +21,7 @@ class Mutators(object):
         inserted = ls.insert(pos, token)
         if inserted[0].type == 'ENDMARKER':
           return self.insertRandom(vFile)
-        vFile.mutate(ls, prev, ls[pos-1], ls[pos+1])
+        vFile.mutate(ls, ls[pos-1], inserted[0], ls[pos+1])
         return None
             
     def replaceRandom(self, vFile):
