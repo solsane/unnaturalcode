@@ -16,7 +16,7 @@ for arg in sys.argv[1:]:
     with open(arg, 'rb') as csvfile:
         csvr = csv.reader(csvfile)
         for stuff in csvr:
-            print(stuff, file=sys.stderr)
+            #print(stuff, file=sys.stderr)
             (path,
             mutation,
             window_rank,
