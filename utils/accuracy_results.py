@@ -1,4 +1,4 @@
-from __future__ import print_function
+from __future__ import print_function, division
 
 import csv
 import sys
@@ -38,13 +38,6 @@ for arg in sys.argv[1:]:
             fix_operation) = stuff
             if mutation not in acc_tab:
                 acc_tab[mutation] = {
-                  'total': 0,
-                  'i': 0,
-                  'd': 0,
-                  's': 0,
-                  'no': 0,
-                  'valid': 0,
-                  'true': 0
                 }
             mut_tab = acc_tab[mutation]
             inc(mut_tab, 'total')
