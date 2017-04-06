@@ -263,7 +263,7 @@ class ucSource(list):
             return self.extend(args)
       
     def insert(self, i, arg):
-        assert i < len(self)
+        assert i <= len(self), str(i) + " " + str(len(self))
         assert i >= 0
         if not isinstance(arg, list):
           arg = [arg]

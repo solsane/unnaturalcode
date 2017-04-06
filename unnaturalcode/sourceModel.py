@@ -20,9 +20,7 @@ from unnaturalcode.mitlmCorpus import *
 from unnaturalcode.pythonSource import *
 from unnaturalcode.unnaturalCode import ucLexeme
 from operator import itemgetter
-
 from logging import debug, info, warning, error
-
 
 class sourceModel(object):
 
@@ -30,6 +28,7 @@ class sourceModel(object):
         self.cm = cm
         self.lang = language
         self.windowSize = windowSize
+        self.listOfUniqueTokens = {}
 
     def trainFile(self, files):
         """Blindly train on a set of files whether or not it compiles..."""
@@ -53,6 +52,9 @@ class sourceModel(object):
     def trainLexemes(self, lexemes):
         """Train on a lexeme sequence."""
         lexemes = lexemes.scrubbed()
+        for l in lexemes:
+            if l[4] not in self.listOfUniqueTokens:
+                self.listOfUniqueTokens[l[4]] = l
         windowlen = self.windowSize
         padding = windowlen
         lstrings = self.stringifyAll(lexemes)
@@ -153,6 +155,99 @@ class sourceModel(object):
         unwindows = unwindows[content_start:content_end]
         return (sorted(windows, key=itemgetter(1), reverse=True),
                 sorted(unwindows, key=itemgetter(1), reverse=True))
+      
+    def isValid(self, lexemes):
+        (filename, line, func, text, exceptionName) = lexemes.check_syntax()
+        if exceptionName is None:
+            return True
+        else:
+            return False
+    
+    def tryDelete(self, lexemes, loci):
+        ta = lexemes[loci]
+        attempt = copy(lexemes)
+        deleted = attempt.pop(loci)
+        window = lexemes[max(0, loci-self.windowSize):
+                           min(len(lexemes),loci+self.windowSize+1)]
+        tb = window.pop(min(self.windowSize, loci))
+        assert ta == tb, "\n".join((repr(ta), repr(tb)))
+        qattempt = (["/*<START>*/"] * max(0, self.windowSize-loci) +
+                    self.stringifyAll(window) +
+                    ["/*<END>*/"] * max(0, (loci-len(lexemes))+self.windowSize+1))
+        assert len(qattempt) == (2*self.windowSize), len(qattempt)
+        entropy = self.cm.queryCorpus(qattempt)
+        assert len(attempt) == len(lexemes)-1
+        if self.isValid(attempt):
+            return (True, attempt, "Delete", loci, deleted, entropy)
+        else:
+            return (False, attempt, "Delete", loci, deleted, entropy)
+    
+    def tryInsert(self, lexemes, loci):
+        window = lexemes[max(0, loci-self.windowSize):
+                           min(len(lexemes),loci+self.windowSize)]
+        results = []
+        for string, token in self.listOfUniqueTokens.items():
+            wattempt = copy(window)
+            wattempt.insert(min(self.windowSize, loci), token)
+            qattempt = (["/*<START>*/"] * max(0, self.windowSize-loci) +
+                        self.stringifyAll(wattempt) +
+                        ["/*<END>*/"] * max(0, (loci-len(lexemes))+self.windowSize))
+            assert len(qattempt) == (2*self.windowSize)+1, len(qattempt)
+            entropy = self.cm.queryCorpus(qattempt)
+            results.append((token, entropy))
+        bestresults = sorted(results, key=itemgetter(1), reverse=False)    
+        attempt = copy(lexemes)
+        attempt.insert(loci,bestresults[0][0])
+        assert len(attempt) == len(lexemes)+1
+        if self.isValid(attempt):
+            return (True, attempt, "Insert", loci, attempt[loci], bestresults[0][1])
+        else:
+            return (False, attempt, "Insert", loci, attempt[loci], bestresults[0][1])
+
+    def tryReplace(self, lexemes, loci):
+        ta = lexemes[loci]
+        window = lexemes[max(0, loci-self.windowSize):
+                           min(len(lexemes),loci+self.windowSize+1)]
+        results = []
+        for string, token in self.listOfUniqueTokens.items():
+            wattempt = copy(window)
+            tb = wattempt.pop(min(self.windowSize, loci))
+            assert ta == tb, "\n".join((repr(ta), repr(tb)))
+            wattempt.insert(self.windowSize, token)
+            qattempt = (["/*<START>*/"] * max(0, self.windowSize-loci) +
+                        self.stringifyAll(wattempt) +
+                        ["/*<END>*/"] * max(0, (loci-len(lexemes))+self.windowSize+1))
+            assert len(qattempt) == (2*self.windowSize)+1, len(qattempt)
+            entropy = self.cm.queryCorpus(qattempt)
+            results.append((token, entropy))
+        bestresults = sorted(results, key=itemgetter(1), reverse=False)    
+        attempt = copy(lexemes)
+        attempt.pop(loci)
+        attempt.insert(loci,bestresults[0][0])
+        assert len(attempt) == len(lexemes)
+        if self.isValid(attempt):
+            return (True, attempt, "Replace", loci, attempt[loci], bestresults[0][1])
+        else:
+            return (False, attempt, "Replace", loci, attempt[loci], bestresults[0][1])
+
+    def fixQuery(self, lexemes, location):
+        found = False
+        for loci in range(0, len(lexemes)):
+            if location.start == lexemes[loci].start:
+                found = True
+                break
+        assert found
+        #TODO: This is wrong and needs to be fixed, but its compatible
+        # with the ICSME paper
+        fixes = [(False, None, "None", loci, None, 1e70)]
+        fix = self.tryDelete(lexemes, loci)
+        if fix[0]: fixes.append(fix)
+        fix = self.tryInsert(lexemes, loci)
+        if fix[0]: fixes.append(fix)
+        fix = self.tryReplace(lexemes, loci)
+        if fix[0]: fixes.append(fix)
+        fixes = sorted(fixes, key=itemgetter(5), reverse=False)
+        return fixes[0]
 
     def release(self):
         self.cm.release()

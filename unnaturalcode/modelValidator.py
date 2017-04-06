@@ -121,6 +121,8 @@ class ModelValidation(object):
         ttr = 0 # total rank
         tttn = 0 # total in top n
         n_so_far = 0
+        trues = 0
+        valids = 0
         assert n > 0
         for fi in self.testFiles:
           assert isinstance(fi, ValidationFile)
@@ -169,11 +171,31 @@ class ModelValidation(object):
                   tok_result_rank_found = True
                   break
             if not tok_result_rank_found:
+                error("tok_result: " +  str(tok_result))
                 error(repr(fi.mutatedLocationPrev.end) + " < " + " > " + repr(fi.mutatedLocationNext.start))
-                for tok_result in range(0, 20):
+                for tok_result in range(0, len(un)):
+                  if un[tok_result][0].start.line == fi.mutatedLocation.start.line or tok_result < 20:
                     error(" > " + repr(un[tok_result][0].start) + " " + repr(un[tok_result][0].start) + " < ")
                 assert(False)
             info(" ".join(map(str, [mutation.__name__, uc_result, fi.mutatedLocation.start.line, exceptionName, line])))
+            fix_k = 2
+            fix = "NoFix"
+            validfix = False
+            fixop = "None"
+            fixed = None
+            sm = self.sm
+            fixent = 1e70
+            if tok_result < fix_k:
+                (validfix, fixed, fixop, fixloc, fixtok, fixent) = self.sm.fixQuery(fi.mutatedLexemes, un[tok_result][0])
+            if validfix:
+                if sm.stringifyAll(fi.scrubbed) == sm.stringifyAll(fixed):
+                    fix = "TrueFix"
+                    valids += 1
+                    trues += 1
+                else:
+                    fix = "ValidFix"
+                    valids += 1
+            info(fix + " " + fixop)
             if uc_result >= len(worst):
               error(repr(worst))
               error(repr(fi.mutatedLocation))
@@ -194,7 +216,11 @@ class ModelValidation(object):
               worst[uc_result][0][0].start.line,
               un[0][0].start.line,
               line_result,
-              tok_result])
+              tok_result,
+              fix,
+              validfix,
+              fixop
+            ])
             self.csvFile.flush()
             wtrr += 1/float(uc_result+1)
             wtr += float(uc_result+1)
@@ -220,7 +246,11 @@ class ModelValidation(object):
             tmrr = ttrr/float(n_so_far)
             tmr = ttr/float(n_so_far)
             tmtn = tttn/float(n_so_far)
+            no = float(n_so_far-valids)/float(n_so_far)
+            true = float(valids)/float(n_so_far)
+            valid = float(trues)/float(n_so_far)
             info("Token MRR %f MR %f M5+ %f" % (tmrr, tmr, tmtn))
+            info("Fix No %f Valid %f True %f " % (no, true, valid))
       
     def __init__(self, 
                  test=None,

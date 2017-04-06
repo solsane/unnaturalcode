@@ -8,10 +8,11 @@ class Mutators(object):
         """Delete a random token from a file."""
         ls = copy(vFile.scrubbed)
         idx = randint(1, len(ls)-2)
+        after = ls[idx+1]
         token = ls.pop(idx)
         if token.type == 'ENDMARKER':
           return self.deleteRandom(vFile)
-        vFile.mutate(ls, ls[idx-1], token, ls[idx])
+        vFile.mutate(ls, ls[idx-1], token, after)
         return None
             
     def insertRandom(self, vFile):
