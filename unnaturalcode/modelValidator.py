@@ -259,10 +259,12 @@ class ModelValidation(object):
             no = float(n_so_far-valids)/float(n_so_far)
             true = float(valids)/float(n_so_far)
             valid = float(trues)/float(n_so_far)
+            info("Fix No %i Valid %i True %i " % (nos, trues, valids))
             info("Fix No %f Valid %f True %f " % (no, true, valid))
             delete_ = float(deletions)/float(n_so_far)
             insert_ = float(insertions)/float(n_so_far)
             subs_ = float(substitutions)/float(n_so_far)
+            info("Fix D %i I %i R %i " % (deletions, insertions, substitutions))
             info("Fix D %f I %f R %f " % (delete_, insert_, subs_))
       
     def __init__(self, 
