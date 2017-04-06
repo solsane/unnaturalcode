@@ -256,7 +256,8 @@ class ModelValidation(object):
             tmr = ttr/float(n_so_far)
             tmtn = tttn/float(n_so_far)
             info("Token MRR %f MR %f M5+ %f" % (tmrr, tmr, tmtn))
-            no = float(n_so_far-valids)/float(n_so_far)
+            nos = n_so_far-valids
+            no = float(nos)/float(n_so_far)
             true = float(valids)/float(n_so_far)
             valid = float(trues)/float(n_so_far)
             info("Fix No %i Valid %i True %i " % (nos, trues, valids))
