@@ -104,17 +104,3 @@ class mitlmCorpus(object):
     def __del__(self):
         """I am a destructor, but release should be called explictly."""
         assert not self.corpusFile, "Destructor called before release()"
-
-def chill_rm(filename):
-    """
-    rm, but silently ignore errors if the given file does not exist. 
-    """
-    try:
-        os.remove(filename)
-    except OSError as error:
-        # Ignore the error if the file does not exist.
-        if error.errno == errno.ENOENT:
-            pass
-        else:
-            raise error
-
