@@ -3,8 +3,7 @@
 UnnaturalCode is a system with the purpose of augmenting the compiler's own
 syntax error location strategies. It is designed to assist the developer in
 locating syntax errors in their software. For more information, please consult
-the the [UnnaturalCode
-paper](http://webdocs.cs.ualberta.ca/~joshua2/syntax.pdf) (preprint).
+the [UnnaturalCode paper](http://webdocs.cs.ualberta.ca/~joshua2/syntax.pdf) (preprint).
 
 * [Video Demo](https://www.youtube.com/watch?v=mIMpfh7rDEk)
 * [Slides](http://webdocs.cs.ualberta.ca/~joshua2/syntax_presentation.pdf)
@@ -13,6 +12,33 @@ paper](http://webdocs.cs.ualberta.ca/~joshua2/syntax.pdf) (preprint).
 
 UnnaturalCode should be considered proof-of-concept quality software. The
 primary author of UnnaturalCode, Joshua Charles Campbell can be reached at <joshua2@ualberta.ca>.
+
+# Install
+
+Clone this repository with the recursive option:
+
+    git clone --recursive https://github.com/orezpraw/unnaturalcode.git
+
+Alternatively, clone this repository, then initialize `git-submodules`.
+
+    git submodule update --init
+
+This will also clone [MITLM].
+
+[MITLM]: https://github.com/orezpraw/MIT-Language-Modeling-Toolkit/tree/267325017f60dee86caacd5b207eacdc50a3fc32
+
+> **macOS**: MITLM requires gfortran, which must be installed before
+> running `pip install`.
+>
+>     brew install gcc
+>
+> Then, prior to the pip install, set the `LIBRARY_PATH` as appropriate:
+>
+>     export LIBRARY_PATH="$(dirname $(brew list gcc | grep libgfortran.a | tail -1)):$LIBRARY_PATH"
+
+Create a virtualenv (optional), then:
+
+    pip install -e .
 
 # Use
 
@@ -44,7 +70,7 @@ with UnnaturalCode.  If not, see <http://www.gnu.org/licenses/>.
 
 # Academic Use
 
-Now we aren't going to impose any extra requirements, but we ask kindly if you 
+Now we aren't going to impose any extra requirements, but we ask kindly if you
 are using this academically that you should consider citing our relevant work:
 
     @InProceedings{campbellMSR2014,
@@ -54,4 +80,4 @@ are using this academically that you should consider citing our relevant work:
       year =      {2014},
       pages =     {10}
     }
-    
+
