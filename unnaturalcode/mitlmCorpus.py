@@ -34,20 +34,26 @@ mitlmLogger = getLogger('MITLM')
 mitlmLogger.setLevel(logging.DEBUG)
 
 class mitlmCorpus(object):
+    """
+    Interface to an MITLM corpus.
+    """
 
-    def __init__(self, readCorpus=None, writeCorpus=None, estimateNgramPath=None, uc=unnaturalCode(), order=10):
+    def __init__(self, readCorpus=None, writeCorpus=None, uc=unnaturalCode(), order=10):
         self.readCorpus = (readCorpus or os.getenv("ucCorpus", "/tmp/ucCorpus"))
         self.writeCorpus = (writeCorpus or os.getenv("ucWriteCorpus", self.readCorpus))
         self.corpusFile = False
         self.order = order
         self.mitlm = None
-        
+
     def startMitlm(self):
+        """
+        Called automatically. Initializes MITLM, however we're interfacing to
+        it nowadays.
+        """
         if self.mitlm == None:
-            self.mitlm = pymitlm.PyMitlm(self.readCorpus,
-                             self.order,
-                             "KN",
-                             True)
+            self.mitlm = pymitlm.PyMitlm(self.readCorpus, self.order,
+                                         "KN", True)
+
     def corpify(self, lexemes):
         """Stringify lexed source: produce space-seperated sequence of lexemes"""
         assert isinstance(lexemes, list)
@@ -74,11 +80,12 @@ class mitlmCorpus(object):
         assert len(lexemes)
         self.openCorpus()
         cl = self.corpify(lexemes)
-        #debug(cl)
         assert(len(cl))
         assert (not allWhitespace.match(cl)), "Adding blank line to corpus!"
         print(cl, file=self.corpusFile)
         self.corpusFile.flush()
+        # MITLM cannot (as of now) update its model, so just throw out the old
+        # one.
         self.mitlm = None
 
     def queryCorpus(self, request):
