@@ -39,7 +39,7 @@ def checkBabelSyntax(src):
 		myFile = open("toCheck.js", "w")
 		myFile.write(src)
 		myFile.close()
-		proc = subprocess.Popen(['../../node_modules/.bin/babel', 'toCheck.js', '-o', '/dev/null', '--no-highlight-code'], stderr=subprocess.PIPE)
+		proc = subprocess.Popen(['babel', 'toCheck.js', '-o', '/dev/null', '--no-highlight-code'], stderr=subprocess.PIPE)
 		streamdata, err = proc.communicate()
 		rc = proc.returncode
 		if rc == 0:
