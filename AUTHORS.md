@@ -28,8 +28,4 @@ Alex Wilson
 
 Graham Forest
 
-Earl T. Barr
-
-Prem Devanbu
-
-Daryl Posnett
+Dhvani Patel
