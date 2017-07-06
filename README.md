@@ -40,6 +40,21 @@ Create a virtualenv (optional), then:
 
     pip install -e .
 
+Must set the PATH for the following compilers:
+
+- Babel
+- V8
+- EsLint
+- JavaScriptCore
+
+Execute:
+
+    export PATH=/YOUR_LOCATION_OF_FILE/:$PATH
+
+An example for Babel:
+
+    export PATH=/home/dhvani/node_modules/.bin:$PATH
+
 # Use
 
 To start the HTTP server:
