@@ -43,6 +43,7 @@ def checkMonkeySyntax(src):
 		if rc == 0:
 			# No errors, all good
 			os.remove("toCheck.js")
+			proc.kill()
 			return None
 		else:
 			# Error, disect data for constructor		
@@ -69,5 +70,6 @@ def checkMonkeySyntax(src):
 			
 			errorObj = CompileError(fileName, line, column, None, text, errorname)
 			os.remove("toCheck.js")
+			proc.kill()
 			return [errorObj]		
 
