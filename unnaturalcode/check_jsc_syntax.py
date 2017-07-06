@@ -40,7 +40,7 @@ def checkJSCSyntax(src):
 		myCFile = open("code.js", "w")
 		myCFile.write('checkSyntax(\'toCheck.js\')')
 		myCFile.close()
-		proc = subprocess.Popen(['../../WebKit/WebKitBuild/Release/bin/jsc', 'code.js'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+		proc = subprocess.Popen(['jsc', 'code.js'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 		stream, err = proc.communicate()
 		rc = proc.returncode
 		if rc == 0:
