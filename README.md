@@ -47,7 +47,7 @@ Must set the PATH for the following compilers:
 - EsLint
 - JavaScriptCore
 
-Execute:
+Execute the following for each compiler:
 
     export PATH=/YOUR_LOCATION_OF_FILE/:$PATH
 
