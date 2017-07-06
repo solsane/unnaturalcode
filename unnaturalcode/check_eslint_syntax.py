@@ -38,7 +38,7 @@ def checkEslintSyntax(src):
 		myFile = open("toCheck.js", "w")
 		myFile.write(src)
 		myFile.close()
-		proc = subprocess.Popen(['../node_modules/.bin/eslint', 'toCheck.js', '--no-color', '--quiet', '-f', 'tap'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+		proc = subprocess.Popen(['../../../node_modules/.bin/eslint', 'toCheck.js', '--no-color', '--quiet', '-f', 'tap'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 		stream, err = proc.communicate()
 		rc = proc.returncode
 		if rc == 0:
