@@ -16,7 +16,7 @@
 #    You should have received a copy of the GNU Affero General Public License
 #    along with UnnaturalCode.  If not, see <http://www.gnu.org/licenses/>.
 
-from Check import checkMonkeySyntax
+from check_monkey_syntax import checkMonkeySyntax
 from compile_error import CompileError
 
 import unittest
