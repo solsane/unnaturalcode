@@ -15,3 +15,6 @@ venv
 *.egg-info
 MANIFEST
 pymitlm/pymitlm.py
+build
+dist
+target
