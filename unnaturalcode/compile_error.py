@@ -34,7 +34,7 @@ class CompileError(object):
         self.text = text
         self.errorname = errorname
         if column is not None:
-            assert isintance(column, integer_types)
+            assert isinstance(column, integer_types)
         self.column = column
 
 """
