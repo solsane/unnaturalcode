@@ -46,7 +46,7 @@ def checkV8Syntax(src):
 			return None
 		else:
 			
-			proc = subprocess.Popen(['v8/out.gn/x64.release/d8', 'toCheck.js'],stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+			proc = subprocess.Popen(['d8', 'toCheck.js'],stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 			stream, err = proc.communicate()
 			# Error, disect data for constructor	
 			colonFirInd = find_nth(stream, ':', 1)

@@ -39,7 +39,7 @@ def checkBabelSyntax(src):
 		myFile = open("toCheck.js", "w")
 		myFile.write(src)
 		myFile.close()
-		proc = subprocess.Popen(['node_modules/.bin/babel', 'toCheck.js', '-o', '/dev/null'], stderr=subprocess.PIPE)
+		proc = subprocess.Popen(['babel', 'toCheck.js', '-o', '/dev/null', '--no-highlight-code'], stderr=subprocess.PIPE)
 		streamdata, err = proc.communicate()
 		rc = proc.returncode
 		if rc == 0:
@@ -61,15 +61,12 @@ def checkBabelSyntax(src):
 			errorname = err[0:colonFirInd]
 
 			flagStart = find_nth(err, '>', 1)
-
-			temp = err[flagStart:]
-			ind = find_nth(temp, '\n', 1)
+			flagEnd = find_nth(err, '^', 1)
 
 			textBefore = err[colonSecInd+2:lineBegin-1]
-			textAfter = err[flagStart+26:flagStart+ind]
+			textAfter = err[flagStart+6:flagEnd-7]
 			text = textBefore + ' ' + textAfter
 			
 			errorObj = CompileError(fileName, line, column, None, text, errorname)
 			os.remove("toCheck.js")
 			return [errorObj]	
-

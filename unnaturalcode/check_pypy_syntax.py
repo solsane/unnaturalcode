@@ -16,8 +16,9 @@
 #    You should have received a copy of the GNU Affero General Public License
 #    along with UnnaturalCode.  If not, see <http://www.gnu.org/licenses/>.
 
-# Takes in a string of JavaScript code and checks for errors
-# NOTE: FOR JAVASCRIPT CORE (JSC)
+# Takes in a string of Python code and checks for errors
+# NOTE: FOR PYPY
+
 import os
 import subprocess
 import sys
@@ -26,50 +27,57 @@ from compile_error import CompileError
 
 # Method for finding index of certain characters in a string, n being the n'th occurence of the character/string
 def find_nth(haystack, needle, n):
-    start = haystack.find(needle)
+    start = haystack.find(needle.encode())
     while start >= 0 and n > 1:
         start = haystack.find(needle, start+len(needle))
         n -= 1
     return start	
 
 # Main method
-def checkJSCSyntax(src):
-		myFile = open("toCheck.js", "w")
+def checkPyPySyntax(src):
+		myFile = open("toCheck.py", "w")
 		myFile.write(src)
 		myFile.close()
-		myCFile = open("code.js", "w")
-		myCFile.write('checkSyntax(\'toCheck.js\')')
-		myCFile.close()
-		proc = subprocess.Popen(['jsc', 'code.js'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-		stream, err = proc.communicate()
+		proc = subprocess.Popen(['pypy-stm', '-m', 'py_compile', 'toCheck.py'], stderr=subprocess.PIPE)
+		streamdata, err = proc.communicate()
 		rc = proc.returncode
 		if rc == 0:
 			# No errors, all good
-			os.remove("toCheck.js")
-			os.remove("code.js")
+			os.remove("toCheck.py")
 			return None
 		else:
-			colonFirInd = find_nth(stream, ':', 1)
-			colonSecInd = find_nth(stream, ':', 2)
-			fileInd = find_nth(stream, '.js', 1)
-			checkInd = find_nth(stream, 'checkSyntax@', 1)
+			# Error, disect data for constructor		
+			fileBegInd = find_nth(err, 'File ', 1)
+			fileEndInd = find_nth(err, ',', 1)
+			lineInd = find_nth(err, 'line ', 1)
+
+			temp = err[lineInd:]
+			nextLineInd = find_nth(err, '  ', 1)
+			line = int(err[lineInd+5:nextLineInd+lineInd+6])
+
+			textInd = find_nth(err, '    ', 1)
+			temp2 = err[textInd+4:]
+			
 		
-			temp = stream[:fileInd+3]
-			cutInd = temp.rfind(' ')
-
-			temp2 = stream[fileInd:]
-			cut2Ind = find_nth(temp2, ':', 1)
+			nextLineIndTemp = find_nth(temp2, '    ', 1)
+			textAfter = err[textInd+4:nextLineIndTemp+textInd+3]
 			
-			fileName = temp[cutInd+1:]
-			
-			text = stream[colonSecInd+2:cutInd-3]	
+			fileName = err[fileBegInd+6:fileEndInd-1]
 
-			line = int(stream[fileInd+cut2Ind+1:checkInd])
+			colon = ':'
 
-			errorname = stream[colonFirInd+2:colonSecInd]
+			textBeforeInd = err.rfind(colon.encode())
+			textBefore = err[textBeforeInd+2:]
+			textBefore = textBefore.strip()
 	
+			colonTwo = ':'
+
+			text = textBefore + colon.encode() + textAfter
+
+			cutoffInd = find_nth(err, '^', 1)
+			errorname = err[cutoffInd+2:textBeforeInd]
+			
 			errorObj = CompileError(fileName, line, None, None, text, errorname)
-			os.remove("toCheck.js")
-			os.remove("code.js")
-			return [errorObj]		
+			os.remove("toCheck.py")
+			return [errorObj]
 

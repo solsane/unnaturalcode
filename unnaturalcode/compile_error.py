@@ -27,7 +27,7 @@ class CompileError(object):
                  text=None,
                  errorname=None):
         assert line is not None
-        assert isintance(line, integer_types)
+        assert isinstance(line, integer_types)
         self.filename = filename
         self.line = line
         self.functionname = functionname

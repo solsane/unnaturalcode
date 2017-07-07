@@ -16,32 +16,31 @@
 #    You should have received a copy of the GNU Affero General Public License
 #    along with UnnaturalCode.  If not, see <http://www.gnu.org/licenses/>.
 
-from check_monkey_syntax import checkMonkeySyntax
+
+from check_pypy_syntax import checkPyPySyntax
 from compile_error import CompileError
 
 import unittest
 
-ERROR_TEST = """if (process.argv.length < 3)
-	console.error("not enough args");
-	process.exit(1);
-}
+ERROR_TEST = """if(true)):
+	print ("I am correct")
 """
 
 class TestStringMethods(unittest.TestCase):
 
 	def test_syntax_ok(self):
-		toTest = checkMonkeySyntax('a=1+2')
+		toTest = checkPyPySyntax('a=1+2')
 		self.assertTrue(toTest is None)
 		
 	def test_syntax_error(self):
-		toTest = checkMonkeySyntax(ERROR_TEST)
+		toTest = checkPyPySyntax(ERROR_TEST)
 		self.assertTrue(isinstance (toTest[0], CompileError))
-		self.assertEqual(toTest[0].filename, 'toCheck.js')
-		self.assertEqual(toTest[0].line, 4)
-		self.assertEqual(toTest[0].column, 0)
+		self.assertEqual(toTest[0].filename, 'toCheck.py'.encode())
+		self.assertEqual(toTest[0].line, 1)
+		self.assertEqual(toTest[0].column, None)
 		self.assertEqual(toTest[0].functionname, None)
-		self.assertEqual(toTest[0].text, 'syntax error: }')
-		self.assertEqual(toTest[0].errorname, 'SyntaxError')
+		self.assertEqual(toTest[0].text, 'unmatched \')\':if(true)):'.encode())
+		self.assertEqual(toTest[0].errorname, 'SyntaxError'.encode())
 	
 		
 if __name__ == '__main__':
