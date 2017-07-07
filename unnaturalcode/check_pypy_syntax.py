@@ -38,7 +38,7 @@ def checkPyPySyntax(src):
 		myFile = open("toCheck.py", "w")
 		myFile.write(src)
 		myFile.close()
-		proc = subprocess.Popen(['pypy-stm-2.5.1-linux64/bin/pypy-stm', '-m', 'py_compile', 'toCheck.py'], stderr=subprocess.PIPE)
+		proc = subprocess.Popen(['pypy-stm', '-m', 'py_compile', 'toCheck.py'], stderr=subprocess.PIPE)
 		streamdata, err = proc.communicate()
 		rc = proc.returncode
 		if rc == 0:
