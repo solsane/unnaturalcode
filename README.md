@@ -42,10 +42,16 @@ Create a virtualenv (optional), then:
 
 Must set the PATH for the following compilers:
 
+JavaScript:
+
 - Babel
 - V8
 - EsLint
 - JavaScriptCore
+
+Python:
+
+- PyPy
 
 Execute the following for each compiler:
 
