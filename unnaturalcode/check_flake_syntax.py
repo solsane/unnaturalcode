@@ -17,7 +17,7 @@
 #    along with UnnaturalCode.  If not, see <http://www.gnu.org/licenses/>.
 
 # Takes in a string of Python code and checks for errors
-# NOTE: FOR PYPY
+# NOTE: FOR FLAKE8
 
 import os
 import subprocess
@@ -34,50 +34,44 @@ def find_nth(haystack, needle, n):
     return start	
 
 # Main method
-def checkPyPySyntax(src):
+def checkFlakeSyntax(src):
 		myFile = open("toCheck.py", "w")
 		myFile.write(src)
 		myFile.close()
-		proc = subprocess.Popen(['pypy', '-m', 'py_compile', 'toCheck.py'], stderr=subprocess.PIPE)
-		streamdata, err = proc.communicate()
+		proc = subprocess.Popen(['flake8', 'toCheck.py'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+		stream, err = proc.communicate()
 		rc = proc.returncode
+		errorFlag = find_nth(stream, 'SyntaxError:', 1)
 		if rc == 0:
 			# No errors, all good
 			os.remove("toCheck.py")
 			return None
+		elif errorFlag < 0:
+			# No errors, all good
+			os.remove("toCheck.py")
+			return None
 		else:
-			# Error, disect data for constructor		
-			fileBegInd = find_nth(err, 'File ', 1)
-			fileEndInd = find_nth(err, ',', 1)
-			lineInd = find_nth(err, 'line ', 1)
+			# Error, disect data for constructor	
+			colonFirInd = find_nth(stream, ':', 1)
 
-			temp = err[lineInd:]
-			nextLineInd = find_nth(err, '  ', 1)
-			line = int(err[lineInd+5:nextLineInd+lineInd+6])
+			fileName = stream[:colonFirInd]
+			errorInd = find_nth(stream, 'SyntaxError:', 1)
+			errorname = "SyntaxError".encode()
 
-			textInd = find_nth(err, '    ', 1)
-			temp2 = err[textInd+4:]
+			temp1 = stream[errorInd:]
+			cutOffInd = find_nth(temp1, fileName.decode(), 1)
 			
-		
-			nextLineIndTemp = find_nth(temp2, '    ', 1)
-			textAfter = err[textInd+4:nextLineIndTemp+textInd+3]
+			text = temp1[13:cutOffInd-1]
 			
-			fileName = err[fileBegInd+6:fileEndInd-1]
-
-			colon = ':'
-
-			textBeforeInd = err.rfind(colon.encode())
-			textBefore = err[textBeforeInd+2:]
-			textBefore = textBefore.strip()
+			temp2 = stream[:errorInd-5]
 	
-			colonTwo = ':'
+			colInd = temp2.rfind(':'.encode())
+			midInd = temp2.rfind(':'.encode(), 0, colInd)
+			linInd = temp2.rfind(':'.encode(), 0, midInd)
+			column = int(temp2[midInd+1:colInd])
+			line = int(temp2[linInd+1:midInd])
 
-			text = textBefore + colon.encode() + textAfter
-
-			cutoffInd = find_nth(err, '^', 1)
-			errorname = err[cutoffInd+2:textBeforeInd]
-			
-			errorObj = CompileError(fileName, line, None, None, text, errorname)
+			errorObj = CompileError(fileName, line, column, None, text, errorname)
 			os.remove("toCheck.py")
 			return [errorObj]
 
