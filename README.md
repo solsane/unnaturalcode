@@ -49,10 +49,6 @@ JavaScript:
 - EsLint
 - JavaScriptCore
 
-Python:
-
-- PyPy
-
 Execute the following for each compiler:
 
     export PATH=/YOUR_LOCATION_OF_FILE/:$PATH
