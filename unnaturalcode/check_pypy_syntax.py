@@ -24,6 +24,7 @@ import subprocess
 import sys
 import tempfile
 from compile_error import CompileError
+import re
 
 # Method for finding index of certain characters in a string, n being the n'th occurence of the character/string
 def find_nth(haystack, needle, n):
@@ -52,7 +53,10 @@ def checkPyPySyntax(src):
 			lineInd = find_nth(err, 'line ', 1)
 
 			nextLineInd = find_nth(err, '\n', 1)
-			line = int(err[lineInd+5:nextLineInd])
+			
+			add = err[lineInd+5:nextLineInd]
+			add = re.sub("[^0-9]", "", add)
+			line = int(add)
 
 			textInd = find_nth(err, '    ', 1)
 			temp2 = err[textInd+4:]
