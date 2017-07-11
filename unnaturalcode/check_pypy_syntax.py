@@ -51,9 +51,8 @@ def checkPyPySyntax(src):
 			fileEndInd = find_nth(err, ',', 1)
 			lineInd = find_nth(err, 'line ', 1)
 
-			temp = err[lineInd:]
-			nextLineInd = find_nth(err, '  ', 1)
-			line = int(err[lineInd+5:nextLineInd+lineInd+6])
+			nextLineInd = find_nth(err, '\n', 1)
+			line = int(err[lineInd+5:nextLineInd])
 
 			textInd = find_nth(err, '    ', 1)
 			temp2 = err[textInd+4:]
