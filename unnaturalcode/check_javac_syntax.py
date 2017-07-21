@@ -101,8 +101,8 @@ def checkJavaCSyntax(src):
 			else:
 				#errorObj = CompileError(fileName, line, column, None, text, errorname)
 				#print err
-				print msgNo
-				print lineNums
+				#print msgNo
+				#print lineNums
 				os.remove("ToCheck.java")
 				return msgNo, numError	
 
