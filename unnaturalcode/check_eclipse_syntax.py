@@ -41,7 +41,7 @@ def checkEclipseSyntax(src):
 		myFile = open("ToCheck.java", "w")
 		myFile.write(src)
 		myFile.close()
-		proc = subprocess.Popen(['java', '-jar', '../Downloads/ecj-4.7.jar', 'ToCheck.java'], stderr=subprocess.PIPE)
+		proc = subprocess.Popen(['java', '-jar', 'ecj-4.7.jar', 'ToCheck.java'], stderr=subprocess.PIPE)
 		streamdata, err = proc.communicate()
 		rc = proc.returncode
 		if rc == 0:
