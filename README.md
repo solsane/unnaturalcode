@@ -56,6 +56,10 @@ Execute the following for each compiler:
 An example for Babel:
 
     export PATH=/home/dhvani/node_modules/.bin:$PATH
+    
+Requirement for Java:
+
+Path to ecj-4.7.jar (Eclipse compiler standalone jar) must be set in check_eclipse_syntax.py
 
 # Use
 
