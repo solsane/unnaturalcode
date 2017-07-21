@@ -105,7 +105,3 @@ def checkJavaCSyntax(src):
 				#print lineNums
 				os.remove("ToCheck.java")
 				return msgNo, numError	
-
-if __name__ == '__main__':
-	inputFile = sys.argv[1]
-	checkJavaCSyntax(inputFile)
