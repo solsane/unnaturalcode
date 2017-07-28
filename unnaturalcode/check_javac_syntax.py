@@ -35,6 +35,11 @@ def find_nth(haystack, needle, n):
 
 # Main method
 def checkJavaCSyntax(src):
+		with open(src) as f:
+      		  for i, l in enumerate(f):
+            		pass
+  		numTotLines = i + 1
+	
 		with open (src, "r") as myfile:
    			data = myfile.read()
 		#print data
@@ -165,4 +170,4 @@ def checkJavaCSyntax(src):
 				#print len(insToks)
 				#print len(typeErrors)	
 				os.remove("ToCheck.java")
-				return msgNo, lineNums, insToks, typeErrors	
+				return numTotLines, msgNo, lineNums, insToks, typeErrors	
