@@ -108,6 +108,7 @@ def checkJavaCSyntax(src):
 						insToks.append(insTok)
 			
 				else:
+					flag = False
 					typeErrors.append('')
 					insToks.append('')
 				cutColInd = find_nth(temp, ":", 2)
