@@ -35,11 +35,11 @@ def find_nth(haystack, needle, n):
 
 # Main method
 def checkJavaCSyntax(src):
-		#with open (src, "r") as myfile:
-   		#	data = myfile.read()
+		with open (src, "r") as myfile:
+   			data = myfile.read()
 		#print data
 		myFile = open("ToCheck.java", "w")
-		myFile.write(src)
+		myFile.write(data)
 		myFile.close()
 		proc = subprocess.Popen(['javac', 'ToCheck.java'], stderr=subprocess.PIPE)
 		streamdata, err = proc.communicate()
@@ -65,14 +65,63 @@ def checkJavaCSyntax(src):
 			
 			
 			lineNums = []
+			insToks = []
+			indRepeats = []
+			typeErrors = []
+			origLineNums = []
+			flag = False
 			for ind in range(numError):
 				fileInd = find_nth(err, "ToCheck.java:", ind+1)
 				temp = err[fileInd:]
-				
+				#print "ok"
+				#print temp
+				firstNewLine = find_nth(temp, "\n", 1)
+				firstLine = temp[:firstNewLine]
+				#print firstLine
+				#temp = temp[:firstNewLine]
+				errorColInd = find_nth(firstLine, "error:", 1)
+				expectInd = find_nth(firstLine, "expected", 1)
+				#print expectInd
+				if expectInd != -1:
+					#print expectInd
+					typeErrors.append('i')
+					beforeS = firstLine[errorColInd+7:errorColInd+8]
+					afterS = firstLine[expectInd-2:expectInd-1]
+					if beforeS == '\'' and afterS == '\'':
+						insTok = firstLine[errorColInd+8:expectInd-2]
+					else:
+						insTok = firstLine[errorColInd+7:expectInd-1]
+					if insTok == "class, interface, or enum":
+						flag = True
+						insToks.append("class")
+						insToks.append("interface")
+						insToks.append("enum")
+						typeErrors.append('i')
+						typeErrors.append('i')
+					else:
+						flag = False
+						insToks.append(insTok)
+			
+				else:
+					typeErrors.append('')
+					insToks.append('')
 				cutColInd = find_nth(temp, ":", 2)
 				line = err[fileInd+13:cutColInd+fileInd]
+				#print flag
+				if flag == True:
+					#print int(line)
+					lineNums.append(int(line))
+					origLineNums.append(int(line))
+					indRepeats.append(origLineNums.index(int(line)))
+					lineNums.append(int(line))
+				else:
+					origLineNums.append(int(line))
 				lineNums.append(int(line))
-	
+				
+			#print lineNums	
+			#print origLineNums
+			#print "RADHA"	
+
 			#print "----OUT----"
 			checkInd = err.find("is public, should be declared in a file named")
 			#print msgNo
@@ -81,7 +130,7 @@ def checkJavaCSyntax(src):
 				check = err[:checkInd]
 				lastCheck = err.rfind("ToCheck.java:")
 				tempR = err[lastCheck:]
-				cutColInd = find_nth(tempR, ":", 2)
+				cutColInd = find_nth(tempR, ":", 2)	
 				lineRemov = err[lastCheck+13:cutColInd+lastCheck]
 				rid = int(lineRemov)
 				goOver = lineNums[:]			
@@ -89,19 +138,31 @@ def checkJavaCSyntax(src):
 					if x == rid:
 						lineNums.remove(rid)
 			msgNo = []
-			for x in range(len(lineNums)):
+			#print indRepeats
+			for x in range(len(lineNums) - (len(indRepeats)*2)):
+				if x in indRepeats:
+					#print "TRUE"
+					msgNo.append(x+1)
+					msgNo.append(x+1)
 				msgNo.append(x+1)
 
 			#print msgNo
 			#print lineNums
+			
 
 			if len(msgNo) == 0 and len(lineNums) == 0:
-				os.remove("ToCheck.java")
+				#os.remove("ToCheck.java")
 				return None
 			else:
 				#errorObj = CompileError(fileName, line, column, None, text, errorname)
 				#print err
 				#print msgNo
 				#print lineNums
+				#print insToks
+				#print typeErrors
+				#print len(msgNo)
+				#print len(lineNums)
+				#print len(insToks)
+				#print len(typeErrors)	
 				os.remove("ToCheck.java")
-				return msgNo, numError	
+				return msgNo, lineNums, insToks, typeErrors	
