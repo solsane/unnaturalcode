@@ -35,18 +35,23 @@ def find_nth(haystack, needle, n):
 
 # Main method
 def checkEclipseSyntax(src):
-		#with open (src, "r") as myfile:
-   		#	data = myfile.read()
+		with open(src) as f:
+      		  for i, l in enumerate(f):
+            		pass
+  		numTotLines = i + 1
+
+		with open (src, "r") as myfile:
+   			data = myfile.read()
 		#print data
-		myFile = open("ToCheck.java", "w")
-		myFile.write(src)
+		myFile = open("ToCheckEc.java", "w")
+		myFile.write(data)
 		myFile.close()
-		proc = subprocess.Popen(['java', '-jar', 'ecj-4.7.jar', 'ToCheck.java'], stderr=subprocess.PIPE)
+		proc = subprocess.Popen(['java', '-jar', '../Downloads/ecj-4.7.jar', 'ToCheckEc.java', '-nowarn'], stderr=subprocess.PIPE)
 		streamdata, err = proc.communicate()
 		rc = proc.returncode
 		if rc == 0:
 			# No errors, all good
-			os.remove("ToCheck.java")
+			os.remove("ToCheckEc.java")
 			return None
 		else:
 			# Error, disect data for constructor		
@@ -65,14 +70,75 @@ def checkEclipseSyntax(src):
 			
 			
 			lineNums = []
+			insToks = []
+			indRepeats = []
+			typeErrors = []
 			for ind in range(numError):
+				#print numError
 				fileInd = find_nth(err, "(at line ", ind+1)
 				temp = err[fileInd:]
-				
+				#print "OK"
+				#print temp
+				before = len(insToks)
+				#print before
+				synErrInd = find_nth(temp, "Syntax error", 1)
+				flagInd = find_nth(temp, "----------", 1)
+				if synErrInd != -1 and synErrInd < flagInd:
+					actLine = temp[synErrInd:]
+					tokInsInd = find_nth(actLine, ", insert", 1)
+					#print tokInsInd
+					#print "dhvani"
+					if tokInsInd != -1 and tokInsInd < flagInd:
+						cut = find_nth(actLine, "\" ", 1)
+						typeErrors.append('i')
+						toksIns = actLine[tokInsInd+10:cut]
+						#print toksIns
+						insToks.append(toksIns)
+				stringInd = find_nth(temp, "String literal is not properly closed by a double-quote", 1)
+				if stringInd != -1 and stringInd < flagInd:
+					typeErrors.append('i')
+					toksIns = "\""
+					insToks.append(toksIns)
+				subErrInd = find_nth(temp, "Syntax error on token", 1)
+				if subErrInd != -1 and subErrInd < flagInd:
+					cutLine = temp[subErrInd:]
+					fixTok = find_nth(cutLine, "expected after this token", 1)
+					if fixTok != -1 and fixTok < flagInd:
+						cutInd = find_nth(cutLine,"\", ", 1)
+						toksSub = cutLine[cutInd+3:fixTok-1] 
+						typeErrors.append('i')
+						insToks.append(toksSub)
+					if fixTok == -1:
+						fixTokCheck = find_nth(cutLine, "expected before this token", 1)
+						if fixTokCheck != -1 and fixTokCheck < flagInd:
+							cutInd = find_nth(cutLine,"\", ", 1)
+							toksSub = cutLine[cutInd+3:fixTokCheck-1] 
+							typeErrors.append('i')
+							insToks.append(toksSub)			
+						if fixTokCheck == -1:
+							checkSub = find_nth(cutLine, "expected", 1)
+							if checkSub != -1 and checkSub < flagInd:
+								cutInd = find_nth(cutLine,"\", ", 1)
+								toksSub = cutLine[cutInd+3:checkSub-1] 
+								typeErrors.append('s')
+								insToks.append(toksSub)	
+					delInd = find_nth(cutLine, ", delete this token", 1)	
+					if delInd != -1 and delInd < flagInd:
+						delTok = temp[subErrInd+23:subErrInd+delInd-1]
+						typeErrors.append('d')
+						insToks.append(delTok)
+				checkAsserInd = temp.find("must be defined in its own file")	
+				#print checkAsserInd
+				#print flagInd
+				if checkAsserInd == -1 or checkAsserInd > flagInd:
+					#print "HERE-------------------------------------------------------------"
+					if len(insToks) != before+1:
+						typeErrors.append('')
+						insToks.append('')	
 				cutColInd = find_nth(temp, ")", 1)
 				line = err[fileInd+9:cutColInd+fileInd]
 				lineNums.append(int(line))
-	
+			#print insToks
 			#print lineNums
 			#print "----OUT----"
 			checkInd = err.find("must be defined in its own file")
@@ -85,10 +151,12 @@ def checkEclipseSyntax(src):
 				cutColInd = find_nth(tempR, ")", 1)
 				lineRemov = err[lastCheck+9:cutColInd+lastCheck]
 				rid = int(lineRemov)
-				goOver = lineNums[:]			
+				goOver = lineNums[:]	
+				flag = False		
 				for x in goOver:
-					if x == rid:
+					if x == rid and flag == False:
 						lineNums.remove(rid)
+						flag = True
 
 			msgNo = []
 			for x in range(len(lineNums)):
@@ -98,13 +166,19 @@ def checkEclipseSyntax(src):
 			#print lineNums
 
 			if len(msgNo) == 0 and len(lineNums) == 0:
-				os.remove("ToCheck.java")
-				return None
+				os.remove("ToCheckEc.java")
+				#return numTotLines, [''], [''], [''], ['']
 			else:
 				#errorObj = CompileError(fileName, line, column, None, text, errorname)
 				#print err
 				#print msgNo
 				#print lineNums
-				os.remove("ToCheck.java")
-				return msgNo, lineNums	
+				#print typeErrors
+				#print insToks
+				#print len(msgNo)
+				#print len(lineNums)
+				#print len(insToks)
+				#print len(typeErrors)	
+				os.remove("ToCheckEc.java")
+				return numTotLines, msgNo, lineNums, insToks, typeErrors
 					
