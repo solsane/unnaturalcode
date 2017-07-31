@@ -46,7 +46,7 @@ def checkJavaCSyntax(src):
 		myFile = open("ToCheck.java", "w")
 		myFile.write(data)
 		myFile.close()
-		proc = subprocess.Popen(['javac', 'ToCheck.java'], stderr=subprocess.PIPE)
+		proc = subprocess.Popen(['javac', 'ToCheck.java', '-nowarn'], stderr=subprocess.PIPE)
 		streamdata, err = proc.communicate()
 		rc = proc.returncode
 		if rc == 0:
