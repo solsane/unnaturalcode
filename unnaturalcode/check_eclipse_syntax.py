@@ -158,6 +158,24 @@ def checkEclipseSyntax(src):
 						lineNums.remove(rid)
 						flag = True
 
+			checkIndAgain = find_nth(err, 'must be defined in its own file', 2)
+			count = 2
+			while checkIndAgain != -1:
+				check = err[:checkIndAgain]
+				lastCheck = check.rfind("(at line ")
+				tempR = err[lastCheck:]
+				cutColInd = find_nth(tempR, ")", 1)
+				lineRemov = err[lastCheck+9:cutColInd+lastCheck]
+				rid = int(lineRemov)
+				goOver = lineNums[:]	
+				flag = False		
+				for x in goOver:
+					if x == rid and flag == False:
+						lineNums.remove(rid)
+						flag = True
+				count += 1
+				checkIndAgain = find_nth(err, 'must be defined in its own file', count)
+
 			msgNo = []
 			for x in range(len(lineNums)):
 				msgNo.append(x+1)
@@ -167,7 +185,7 @@ def checkEclipseSyntax(src):
 
 			if len(msgNo) == 0 and len(lineNums) == 0:
 				os.remove("ToCheckEc.java")
-				#return numTotLines, [''], [''], [''], ['']
+				return None
 			else:
 				#errorObj = CompileError(fileName, line, column, None, text, errorname)
 				#print err
@@ -180,5 +198,4 @@ def checkEclipseSyntax(src):
 				#print len(insToks)
 				#print len(typeErrors)	
 				os.remove("ToCheckEc.java")
-				return numTotLines, msgNo, lineNums, insToks, typeErrors
-					
+				return numTotLines, msgNo, lineNums, insToks, typeErrors	
