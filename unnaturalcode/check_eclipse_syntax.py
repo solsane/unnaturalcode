@@ -60,7 +60,7 @@ def checkEclipseSyntax(src, flag_source):
 			# Error, disect data for constructor		
 			#print err
 			err = err[:len(err)-1]
-			print err
+			#print err
 
 			lastLine = err.rfind("\n")
 			#print lastLine
@@ -179,6 +179,7 @@ def checkEclipseSyntax(src, flag_source):
 							realTwoCheck = find_nth(temp, "Incorrect number of arguments", 1)
 							comeCheck = find_nth(temp, "void is an invalid type for the", 1)
 							anotCheck = find_nth(temp, "only final is permitted", 1)
+							randCheck = find_nth(temp, "invalid TypeDeclaration", 1)
 							if realCheck != -1 and realCheck < flagInd:
 								flagError = True
 							elif realTwoCheck != -1 and realTwoCheck < flagInd:
@@ -186,6 +187,8 @@ def checkEclipseSyntax(src, flag_source):
 							elif comeCheck != -1 and comeCheck < flagInd:
 								flagError = True
 							elif anotCheck != -1 and anotCheck < flagInd:
+								flagError = True
+							elif randCheck != -1 and randCheck < flagInd:
 								flagError = True
 							else:
 								flagError = False
@@ -260,7 +263,7 @@ def checkEclipseSyntax(src, flag_source):
 					return numTotLines, [0], [0], [''], ['']
 				else:
 					#print "important"
-					return checkEclipseSyntax(inputFile, True)
+					return checkEclipseSyntax(src, True)
 
 
 			else:
@@ -277,4 +280,5 @@ def checkEclipseSyntax(src, flag_source):
 				os.remove("ToCheckEc.java")
 				assert len(msgNo) == len(lineNums) == len(typeErrors) == len(insToks)
 				return numTotLines, msgNo, lineNums, insToks, typeErrors
+
 					
