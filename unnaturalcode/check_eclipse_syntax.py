@@ -47,9 +47,9 @@ def checkEclipseSyntax(src, flag_source):
 		myFile.write(data)
 		myFile.close()
 		if flag_source == False:
-			proc = subprocess.Popen(['java', '-jar', '../Downloads/ecj-4.7.jar', 'ToCheckEc.java', '-source', '1.8', '-nowarn'], stderr=subprocess.PIPE)
+			proc = subprocess.Popen(['java', '-jar', '../Downloads/ecj-4.7.jar', 'ToCheckEc.java', '-maxProblems', '500', '-source', '1.8', '-nowarn'], stderr=subprocess.PIPE)
 		elif flag_source == True:
-			proc = subprocess.Popen(['java', '-jar', '../Downloads/ecj-4.7.jar', 'ToCheckEc.java',  '-nowarn'], stderr=subprocess.PIPE)
+			proc = subprocess.Popen(['java', '-jar', '../Downloads/ecj-4.7.jar', 'ToCheckEc.java',  '-maxProblems', '500', '-nowarn'], stderr=subprocess.PIPE)
 		streamdata, err = proc.communicate()
 		rc = proc.returncode
 		if rc == 0:
@@ -88,7 +88,7 @@ def checkEclipseSyntax(src, flag_source):
 				#print before
 				synErrInd = find_nth(temp, "Syntax error", 1)
 				flagInd = find_nth(temp, "----------\n", 1)
-				
+				#print flagError
 				#print flagInd
 				if synErrInd != -1 and synErrInd < flagInd:
 					actLine = temp[synErrInd:]
@@ -175,11 +175,14 @@ def checkEclipseSyntax(src, flag_source):
 						if bruhFakeCheck == -1:
 							bruhFakeCheck = find_nth(temp, "Type", 1)
 						if bruhFakeCheck != -1 and bruhFakeCheck < flagInd:
+							#print "?"
 							realCheck = find_nth(temp, "is out of range", 1)
 							realTwoCheck = find_nth(temp, "Incorrect number of arguments", 1)
 							comeCheck = find_nth(temp, "void is an invalid type for the", 1)
 							anotCheck = find_nth(temp, "only final is permitted", 1)
 							randCheck = find_nth(temp, "invalid TypeDeclaration", 1)
+							andCheck = find_nth(temp, "must provide either dimension expressions or an array initializer", 1)
+							synCheck = find_nth(temp, "Syntax error on token", 1)
 							if realCheck != -1 and realCheck < flagInd:
 								flagError = True
 							elif realTwoCheck != -1 and realTwoCheck < flagInd:
@@ -190,14 +193,18 @@ def checkEclipseSyntax(src, flag_source):
 								flagError = True
 							elif randCheck != -1 and randCheck < flagInd:
 								flagError = True
+							elif andCheck != -1 and andCheck < flagInd:
+								flagError = True
+							elif synCheck != -1 and synCheck < flagInd:
+								flagError = True
 							else:
 								flagError = False
-				
+						#print flagError
 						anotherFlag = find_nth(temp, "Return type", 1)
-						if anotherFlag != -1:
+						if anotherFlag != -1 and anotherFlag < flagInd:
 							flagError = True
 						if flagError == True:
-							#print "dhvani"
+							print "dhvani"
 							typeErrors.append('')
 							insToks.append('')	
 						
@@ -280,5 +287,3 @@ def checkEclipseSyntax(src, flag_source):
 				os.remove("ToCheckEc.java")
 				assert len(msgNo) == len(lineNums) == len(typeErrors) == len(insToks)
 				return numTotLines, msgNo, lineNums, insToks, typeErrors
-
-					
