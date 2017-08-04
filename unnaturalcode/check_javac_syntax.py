@@ -164,9 +164,11 @@ def checkJavaCSyntax(src):
 					if x == rid:
 						lineNums.remove(rid)
 			msgNo = []
-			#print indRepeats
+			#print indRepeatsB
 			msgNoInd = 0
-			for x in range(len(lineNums) - (len(indRepeats)*2)):
+			#print 
+			for x in range(len(lineNums) - (( (len(indRepeats)*2) + (len(indRepeatsB)) ) )):
+				#print x
 				if x in indRepeats:
 					#print "TRUE"
 					msgNo.append(msgNoInd+1)
@@ -180,6 +182,7 @@ def checkJavaCSyntax(src):
 				else:
 					msgNo.append(msgNoInd+1)
 					msgNoInd += 1
+				#print msgNo
 				
 
 			#print msgNo
