@@ -4,66 +4,66 @@ from random import randint
 
 class Mutators(object):
 
-    def deleteRandom(self, vFile):
+    def delete_token(self, v_file):
         """Delete a random token from a file."""
-        ls = copy(vFile.scrubbed)
+        ls = copy(v_file.scrubbed)
         idx = randint(1, len(ls)-2)
         after = ls[idx+1]
         token = ls.pop(idx)
         if token.type == 'ENDMARKER':
-          return self.deleteRandom(vFile)
-        vFile.mutate(ls, ls[idx-1], token, after)
+          return self.deleteRandom(v_file)
+        v_file.mutate(ls, ls[idx-1], token, after)
         return None
             
-    def insertRandom(self, vFile):
-        ls = copy(vFile.scrubbed)
+    def insert_token(self, v_file):
+        ls = copy(v_file.scrubbed)
         token = ls[randint(0, len(ls)-1)]
         pos = randint(1, len(ls)-2)
         inserted = ls.insert(pos, token)
         if inserted[0].type == 'ENDMARKER':
-          return self.insertRandom(vFile)
-        vFile.mutate(ls, ls[pos-1], inserted[0], ls[pos+1])
+          return self.insertRandom(v_file)
+        v_file.mutate(ls, ls[pos-1], inserted[0], ls[pos+1])
         return None
             
-    def replaceRandom(self, vFile):
-        ls = copy(vFile.scrubbed)
+    def replace_token(self, v_file):
+        ls = copy(v_file.scrubbed)
         token = ls[randint(0, len(ls)-1)]
         pos = randint(1, len(ls)-2)
         oldToken = ls.pop(pos)
         if oldToken.type == 'ENDMARKER':
-          return self.replaceRandom(vFile)
+          return self.replaceRandom(v_file)
         inserted = ls.insert(pos, token)
         if inserted[0].type == 'ENDMARKER':
-          return self.replaceRandom(vFile)
-        vFile.mutate(ls, ls[pos-1], inserted[0], ls[pos+1])
+          return self.replaceRandom(v_file)
+        v_file.mutate(ls, ls[pos-1], inserted[0], ls[pos+1])
         return None
         
-    def dedentRandom(self, vFile):
-        s = copy(vFile.original)
+    def dedentRandom(self, v_file):
+        s = copy(v_file.original)
         lines = s.splitlines(True);
         while True:
           line = randint(0, len(lines)-1)
           if beginsWithWhitespace.match(lines[line]):
             lines[line][0] = ''
             break
-        vFile.mutatedLexemes = vFile.lm("".join(lines))
-        vFile.mutatedLocation = pythonLexeme.fromTuple((token.INDENT, ' ', (line+1, 0), (line+1, 0)))
+        v_file.mutatedLexemes = v_file.lm("".join(lines))
+        v_file.mutatedLocation = pythonLexeme.fromTuple((token.INDENT, ' ', (line+1, 0), (line+1, 0)))
         return None
         
-    def indentRandom(self, vFile):
-        s = copy(vFile.original)
+    def indentRandom(self, v_file):
+        s = copy(v_file.original)
         lines = s.splitlines(True);
         line = randint(0, len(lines)-1)
         if beginsWithWhitespace.match(lines[line]):
           lines[line] = lines[line][0] + lines[line]
         else:
           lines[line] = " " + lines[line]
-        vFile.mutatedLexemes = vFile.lm("".join(lines))
-        vFile.mutatedLocation = pythonLexeme.fromTuple((token.INDENT, ' ', (line+1, 0), (line+1, 0)))
+        v_file.mutatedLexemes = v_file.lm("".join(lines))
+        v_file.mutatedLocation = pythonLexeme.fromTuple((token.INDENT, ' ', (line+1, 0), (line+1, 0)))
         return None
     
-    def punctRandom(self, vFile):
-        s = copy(vFile.original)
+    def punctRandom(self, v_file):
+        s = copy(v_file.original)
         charPos = randint(1, len(s)-1)
         linesbefore = s[:charPos].splitlines(True)
         line = len(linesbefore)
@@ -71,20 +71,20 @@ class Mutators(object):
         c = s[charPos:charPos+1]
         if (funny.match(c)):
           new = s[:charPos] + s[charPos+1:]
-          vFile.mutatedLexemes = vFile.lm(new)
-          vFile.mutatedLocation = pythonLexeme.fromTuple((token.OP, c, (line, lineChar), (line, lineChar)))
+          v_file.mutatedLexemes = v_file.lm(new)
+          v_file.mutatedLocation = pythonLexeme.fromTuple((token.OP, c, (line, lineChar), (line, lineChar)))
           return None
         else:
-          return self.punctRandom(vFile)
+          return self.punctRandom(v_file)
     
-    #def keyRandom(self, vFile):
-        #s = copy(vFile.original)
+    #def keyRandom(self, v_file):
+        #s = copy(v_file.original)
         
-    def nameRandom(self, vFile):
-      return self.deleteWordRandom(vFile)
+    def nameRandom(self, v_file):
+      return self.deleteWordRandom(v_file)
 
-    def insertWordRandom(self, vFile):
-        s = copy(vFile.original)
+    def insertWordRandom(self, v_file):
+        s = copy(v_file.original)
         while True:
           char = s[randint(1, len(s)-1)]
           charPos = randint(1, len(s)-1)
@@ -95,12 +95,12 @@ class Mutators(object):
           if (name.match(char)):
             break
         new = s[:charPos] + char + s[charPos:]
-        vFile.mutatedLexemes = vFile.lm(new)
-        vFile.mutatedLocation = pythonLexeme.fromTuple((token.OP, c, (line, lineChar), (line, lineChar)))
+        v_file.mutatedLexemes = v_file.lm(new)
+        v_file.mutatedLocation = pythonLexeme.fromTuple((token.OP, c, (line, lineChar), (line, lineChar)))
         return None
 
-    def deleteWordRandom(self, vFile):
-        s = copy(vFile.original)
+    def deleteWordRandom(self, v_file):
+        s = copy(v_file.original)
         while True:
           charPos = randint(1, len(s)-1)
           linesbefore = s[:charPos].splitlines(True)
@@ -110,12 +110,12 @@ class Mutators(object):
           if (name.match(c)):
             break
         new = s[:charPos] + s[charPos+1:]
-        vFile.mutatedLexemes = vFile.lm(new)
-        vFile.mutatedLocation = pythonLexeme.fromTuple((token.OP, c, (line, lineChar), (line, lineChar)))
+        v_file.mutatedLexemes = v_file.lm(new)
+        v_file.mutatedLocation = pythonLexeme.fromTuple((token.OP, c, (line, lineChar), (line, lineChar)))
         return None
         
-    def insertPunctRandom(self, vFile):
-        s = copy(vFile.original)
+    def insertPunctRandom(self, v_file):
+        s = copy(v_file.original)
         if not punct.search(s):
           return "No punctuation"
         while (True):
@@ -128,12 +128,12 @@ class Mutators(object):
         lineChar = len(linesbefore[-1])
         c = s[charPos:charPos+1]
         new = s[:charPos] + char + s[charPos:]
-        vFile.mutatedLexemes = vFile.lm(new)
-        vFile.mutatedLocation = pythonLexeme.fromTuple((token.OP, c, (line, lineChar), (line, lineChar)))
+        v_file.mutatedLexemes = v_file.lm(new)
+        v_file.mutatedLocation = pythonLexeme.fromTuple((token.OP, c, (line, lineChar), (line, lineChar)))
         return None
 
-    def deleteNumRandom(self, vFile):
-        s = copy(vFile.original)
+    def deleteNumRandom(self, v_file):
+        s = copy(v_file.original)
         if not numeric.search(s):
           return "No numbers"
         positions = [x.start() for x in numeric.finditer(s)]
@@ -149,12 +149,12 @@ class Mutators(object):
           if (numeric.match(c)):
             break
         new = s[:charPos] + s[charPos+1:]
-        vFile.mutatedLexemes = vFile.lm(new)
-        vFile.mutatedLocation = pythonLexeme.fromTuple((token.OP, c, (line, lineChar), (line, lineChar)))
+        v_file.mutatedLexemes = v_file.lm(new)
+        v_file.mutatedLocation = pythonLexeme.fromTuple((token.OP, c, (line, lineChar), (line, lineChar)))
         return None
 
-    def insertNumRandom(self, vFile):
-        s = copy(vFile.original)
+    def insertNumRandom(self, v_file):
+        s = copy(v_file.original)
         char = str(randint(0, 9))
         charPos = randint(1, len(s)-1)
         linesbefore = s[:charPos].splitlines(True)
@@ -162,12 +162,12 @@ class Mutators(object):
         lineChar = len(linesbefore[-1])
         c = s[charPos:charPos+1]
         new = s[:charPos] + char + s[charPos:]
-        vFile.mutatedLexemes = vFile.lm(new)
-        vFile.mutatedLocation = pythonLexeme.fromTuple((token.OP, c, (line, lineChar), (line, lineChar)))
+        v_file.mutatedLexemes = v_file.lm(new)
+        v_file.mutatedLocation = pythonLexeme.fromTuple((token.OP, c, (line, lineChar), (line, lineChar)))
         return None
 
-    def deletePunctRandom(self, vFile):
-        s = copy(vFile.original)
+    def deletePunctRandom(self, v_file):
+        s = copy(v_file.original)
         if not punct.search(s):
           return "No punctuation"
         while True:
@@ -179,12 +179,12 @@ class Mutators(object):
           if (punct.match(c)):
             break
         new = s[:charPos] + s[charPos+1:]
-        vFile.mutatedLexemes = vFile.lm(new)
-        vFile.mutatedLocation = pythonLexeme.fromTuple((token.OP, c, (line, lineChar), (line, lineChar)))
+        v_file.mutatedLexemes = v_file.lm(new)
+        v_file.mutatedLocation = pythonLexeme.fromTuple((token.OP, c, (line, lineChar), (line, lineChar)))
         return None
 
-    def colonRandom(self, vFile):
-        s = copy(vFile.original)
+    def colonRandom(self, v_file):
+        s = copy(v_file.original)
         while True:
           charPos = randint(1, len(s)-1)
           linesbefore = s[:charPos].splitlines(True)
@@ -194,6 +194,6 @@ class Mutators(object):
           if (c == ':'):
             break
         new = s[:charPos] + s[charPos+1:]
-        vFile.mutatedLexemes = vFile.lm(new)
-        vFile.mutatedLocation = pythonLexeme.fromTuple((token.OP, c, (line, lineChar), (line, lineChar)))
+        v_file.mutatedLexemes = v_file.lm(new)
+        v_file.mutatedLocation = pythonLexeme.fromTuple((token.OP, c, (line, lineChar), (line, lineChar)))
         return None

@@ -19,6 +19,7 @@ import sys, os, zmq
 import logging
 from logging import debug, info, warning, error
 from copy import copy
+from StringIO import StringIO
 
 if hasattr(sys, 'maxint'): # Python 2/3 Compatibility
   maxint = sys.maxint
@@ -53,37 +54,47 @@ class unnaturalCode(object):
         self.forceTrain = toBool(os.getenv("ucForceTrain", "false"))
         self.forceValidate = toBool(os.getenv("ucValidate", "false"))
         
-class ucPos(tuple):
+class Position(tuple):
     def __new__(cls, *args):
-        if isinstance(args[0], ucPos):
+        if isinstance(args[0], Position):
             return args[0]
         elif len(args) == 2:
             l = args[0]
             c = args[1]
+            i = None
+        elif len(args) == 3:
+            l = args[0]
+            c = args[1]
+            i = args[2]
         elif isinstance(args[0], tuple):
-            (l, c) = args[0]
+            (l, c, i) = args[0]
         elif isinstance(args[0], list):
-            (l, c) = args[0]
+            (l, c, i) = args[0]
         else:
           raise TypeError("Bad constructor arguments.")
-        return tuple.__new__(cls, (l, c))
+        return tuple.__new__(cls, (l, c, i))
     
     if ucParanoid:
         def __init__(self, *args):
             assert isinstance(self[0], int)
             assert isinstance(self[1], int)
+            assert isinstance(self[2], int)
             assert self[0] >= 1
             assert self[1] >= 0
+            assert self[2] >= 0
     
     def __getattr__(self, name):
         if name[0] == 'l':
-          return self[0]
+            return self[0]
         elif name[0] == 'c':
-          return self[1]
-        raise AttributeError
+            return self[1]
+        elif name[0] == 'i':
+            return self[2]
+        else:
+            raise AttributeError
     
     def __str__(self):
-        return str(self[0]) + ":" + str(self[1])
+        return str(self[0]) + ":" + str(self[1]) + ":" + str(self[2])
     
     def __eq__(self, other):
         return (self[0] == other[0]) and (self[1] == other[1])
@@ -103,7 +114,7 @@ class ucPos(tuple):
     def __le__(self, other):
         return self.__lt__(other) or self.__eq__(other)
       
-class ucLexeme(tuple):
+class Lexeme(tuple):
     if ucParanoid:
         def __init__(self, *args):
             assert len(self) == 5
@@ -114,8 +125,8 @@ class ucLexeme(tuple):
             assert (len(self[1]) > 0 
                     or self[0] == "LMEndPadding"
                     or self[0] == "LMStartPadding"), repr(self)
-            assert isinstance(self[2], ucPos)
-            assert isinstance(self[3], ucPos)
+            assert isinstance(self[2], Position)
+            assert isinstance(self[3], Position)
             assert self[2] <= self[3], "%s > %s" % (self[2], self[3])
             assert isinstance(self[4], basestring)
             assert len(self[4]) > 0
@@ -135,14 +146,22 @@ class ucLexeme(tuple):
     def comment(self):
         return False
     
-    def columns(self):
+    def last_line_columns(self):
+        """
+        How many columns this token takes on its last line. If it doesn't
+        contain line breaks, just returns how many colums. If it does contain
+        line breaks, returns columns from the .
+        """
         if self[2][0] == self[3][0]:
             return self[3][1] - self[2][1]
         else:
-            return 0
+            return self[3][1] + 1
     
     def lines(self):
-         return self[3][0] - self[2][0]
+        return self[3][0] - self[2][0]
+     
+    def chars(self):
+        return self[3][2] - self[2][2]
     
     @classmethod
     def stringify_build(cls, t, v):
@@ -157,9 +176,9 @@ class ucLexeme(tuple):
     @classmethod
     def fromTuple(cls, tup):
         if len(args[0] == 4):
-            t = (args[0][0], args[0][1], ucPos(args[0][2]), ucPos(args[0][3]), cls.stringify_build(args[0][0], args[0][1]))
+            t = (args[0][0], args[0][1], Position(args[0][2]), Position(args[0][3]), cls.stringify_build(args[0][0], args[0][1]))
         elif len(args[0] == 5):
-            t = (args[0][0], args[0][1], ucPos(args[0][2]), ucPos(args[0][3]), args[0][4])
+            t = (args[0][0], args[0][1], Position(args[0][2]), Position(args[0][3]), args[0][4])
         else:
             raise TypeError("Constructor argument cant be " + str(type(args[0])))
         return cls(t)
@@ -168,7 +187,7 @@ class ucLexeme(tuple):
     @classmethod
     def fromDict(cls, d):
         if isinstance(d, dict):
-            t = (d['type'], d['value'],  ucPos(d['start']),  ucPos(d['end']), cls.stringify_build(d['type'], d['value']))
+            t = (d['type'], d['value'],  Position(d['start']),  Position(d['end']), cls.stringify_build(d['type'], d['value']))
         else:
             raise TypeError("Constructor argument cant be " + str(type(d)))
         return cls(t)
@@ -179,64 +198,174 @@ class ucLexeme(tuple):
         if isinstance(args[0], cls):
             return args[0]
         elif len(args) == 4:
-            t = (args[0], args[1], ucPos(args[2]), ucPos(args[3]), cls.stringify_build(args[0], args[1]))
+            t = (args[0], args[1], Position(args[2]), Position(args[3]), cls.stringify_build(args[0], args[1]))
         elif len(args) == 5:
-            t = (args[0], args[1], ucPos(args[2]), ucPos(args[3]), args[4])
+            t = (args[0], args[1], Position(args[2]), Position(args[3]), args[4])
         else:
             raise TypeError("Constructor arguments cant be " + str(type(args)))
         return cls(t)
-        
+    
+    def new_position(self, start, end):
+        """Return a copy of this lexeme object but with the positions modified"""
+        return self.__class__(self[0], self[1], Position(start, end, self[4])
+                              
+    def scoot(self, from_, to):
+        """
+        Return a copy of this lexeme object but with the positions shifted.
+        """
+        startL = self.start.l - from_.l + to.l 
+        endL = self.end.l - from_.l + to.l 
+        if self.start.l == from_.l:
+            startC = self.start.c - from_.c + to.c
+        else:
+            startC = self.start.c
+        if self.end.l == from_.l:
+            endC = self.end.c - from_.c + to.c
+        else:
+            endC = self.end.c
+        startI = self.start.i - from_.i + to.i
+        endI = self.end.i - from_.i + to.i
+        start = Position((startL, startC, startI))
+        end = Position((endL, endC, endI))
+        return self.new_position(start, end)
+    
+    def position_after(self):
+        if self.value[-1] == '\n':
+            return Position(self.end.l+1, 0, self.end.i+1)
+        else:
+            return Position(self.end.l, self.end.c+1, self.end.i+1)
 
     def __str__(self):
         return self[4]
 
     
-class ucSource(list):
-
+class Source(object):
     """
     Base class for source code, essentially a list of lexemes that can do
     a bunch of stuff.
     
-    Remember to override lexemeClass in subclasses so that the code here
+    Remember to override lexeme_class in subclasses so that the code here
     fills the source list with lexemes of the correct class!
     """
   
-    lexemeClass = ucLexeme
+    lexeme_class = Lexeme
 
-    def __init__(self, value=[], **kwargs):
-        if isinstance(value, basestring):
-            self.extend(self.lex(value, **kwargs))
-        elif isinstance(value, list):
-            if len(value) == 0:
-                return
-            elif isinstance(value[0], dict):
-                self.extend(map(self.lexemeClass.fromDict, value))
-            else:
-                self.extend(map(self.lexemeClass, value))
+    def __init__(self, lexed=None, text=None, **kwargs):
+        if isinstance(text, basestring):
+            self.text = text
+        if isinstance(lexed, Source):
+            assert text is None # would be overwritten by lexed.text
+            self.extend(lexed)
+        elif isinstance(lexed, list):
+            self.lexemes.extend([
+                self.lexeme_class(i) for i in lexed
+                ])
         else:
-            raise AttributeError, type(value).__name__
+            raise AttributeError, type(lexed).__name__
+        self.lexer_args = kwargs
+        if self.lexemes == None and self.text == None:
+            raise AttributeError, type(lexed).__name__
+        elif self.lexemes == None:
+            self.lex()
+        elif self.text == None:
+            self.de_lex()
+        self.linesep = None
+    
+    def guess_linesep(self):
+        if self.text is not None:
+            if '\r' in self.text and '\n' in self.text:
+                self.linesep = '\r\n'
+                return
+            elif '\n' in self.text:
+                self.linesep = '\n'
+                return
+            elif '\r' in self.text:
+                self.linesep = '\r'
+                return
+        if self.lexemes is not None:
+            for l in lexemes:
+                if '\r' in l.value and '\n' in l.value:
+                    self.linesep = '\r\n'
+                    return
+                elif '\n' in l.value:
+                    self.linesep = '\n'
+                    return
+                elif '\r' in l.value:
+                    self.linesep = '\r'
+                    return
+            for i in range(1, len(lexemes)):
+                cur = lexemes[i]
+                prev = lexemes[i-1]
+                if cur.start.l > prev.end.l:
+                    distance = cur.start.i - prev.end.i
+                    distance -= 1 # tokens don't overlap
+                    distance -= cur.start.c # remove tokens
+                    lines = cur.start.l - prev.end.l
+                    if distance == (lines * 2):
+                        self.linesep = '\r\n'
+                        return
+                    elif distance == lines:
+                        self.linesep = '\n'
+                        return
+        self.linesep = os.linesp # give up
+        return
+        
+    def compute_line_char_indices(self):
+        assert self.text is not None
+        if self.linesep is None:
+            self.guess_linesep()
+        if '\r' in text and '\n' not in text:
+            raise NotImplementedError("I don't understand mac format line endings!")
+        lpos = 0
+        lines = [0]
+        while True:
+            lpos = self.text.find(self.linesep, lpos)+len(self.linesep)
+            if lpos <= 0:
+                break
+            lines.append(lpos)
+        self.line_char_indices = lines
+    
+    #def compute_line_lexeme_indices(self):
+        assert self.lexemes is not None
+        l = 0
+        lines = [0]
+        for i in range(0, len(self.lexemes):
+            lexeme = self.lexemes[i]
+            if lexeme.start.line > l:
+                for li in range(l+1, lexme.start.line+1):
+                    assert len(lines) == li
+                    lines.append(i)
+                l = lexeme.start.line
+    
+    def get_line_start(self, line_nr):
+        if self.line_char_indices is None:
+            self.compute_line_char_indices()
+        return self.line_char_indices[line_nr]
+    
+    def char_i_to_pos(self, i):
+        if self.line_char_indices is None:
+            self.compute_line_char_indices()
+        line = bisect_right(self.line_char_indices, i)
+        col = i-self.line_char_indices[line-1]
+        return Position(line, col, i)
+    
+    def char_lc_to_pos(self, l, c):
+        if self.line_char_indices is None:
+            self.compute_line_char_indices()
+        i = self.line_char_indices[l]+c
+        return Position(l, c, i)
+    
 
     def settle(self):
-        """Contents may settle during shipping."""
-        first = ucPos(self[0].start)
-        for i in range(0, len(self)):
-            if (self[i].end.l - self[i].start.l) > 1:
-                endL = self[i].start.l + 1
-            else:
-                endL = self[i].end.l
-            if self[i].start.l == first.l:
-                startL = 1
-                startC = self[i].start.c - first.c
-            else:
-                startL = self[i].start.l - first.l-1
-                startC = self[i].start.c
-            if endL == first.l:
-                endL = 1
-                endC = self[i].end.c - first.c
-            else:
-                endL = endL - (first.l-1)
-                endC = self[i].end.c
-            self[i] = self[i].__class__((self[i][0], self[i][1], ucPos((startL, startC)), ucPos((endL, endC)), self[i][4]))
+        """
+        Contents may settle during shipping.
+        """
+        first = self.lexemes[0].start
+        self.lexemes = [
+            l.scoot(first, Position(0,1,0)) for l in self.lexemes
+            ]
+        if self.text is not None:
+            self.text = self.text[first.i:]
         if ucParanoid:
             self.check()
         return self
@@ -245,148 +374,162 @@ class ucSource(list):
       start = max(start, 0)
       end = min(end, len(self))
       #debug(str(start) + "-" + str(end))
-      for i in range(start, end-1):
-        assert isinstance(self[i], ucLexeme)
-        assert self[i].end <= self[i+1].start, repr(self[i:i+2])
+      for i in range(start, end):
+        cur = self.lexemes[i]
+        assert isinstance(cur, lexeme_class)
+        assert self.text[cur.start.i:cur.end.i+1] == cur.value
+        lines = cur.end.l - cur.start.l
+        assert lines == cur.value.count(self.linesep)
+      for i in range(start+1, end):
+        cur = self.lexemes[i]
+        prev = self.lexemes[i-1]
+        assert prev.end < cur.start, repr(cur)
+        assert prev.end.i < cur.start.i
+        lines = cur.start.l - prev.end.l
+        space = self.text[prev.end.i+1:cur.start.i]
+        assert lines == space.count(self.linesep)
     
-    if ucParanoid:
-        def extend(self, arg):
-            for a in arg:
-                assert isinstance(a, ucLexeme)
-            s = len(self)-1
-            r = super(ucSource, self).extend(arg)
-            if s >= 0:
-                self.check(start=s)
-            return r
+    def extend(self, x):
+        if x.lexemes is None or len(x.lexemes) == 0: # no-op
+            return self.lexemes
+        assert isinstance(x, self.__class__)
+        if self.lexemes is None or len(self.lexemes) == 0:
+            self.lexemes = x.lexemes
+            self.text = x.text
+            self.line_char_indices = value.line_char_indices
+            self.line_lexeme_indices = value.line_lexeme_indices
+            return self.lexemes
+        from_ = x[0].start
+        after = self.lexemes[-1].after_pos()
+        scooted = [
+                l.scoot(from_, after) for l in x.lexemes
+            ]
+        self.lexemes = self.lexemes + scooted
+        self.text += x.text[from_.i:]
+        return self.scooted
     
-        def append(self, *args):
-            return self.extend(args)
+    def append(self, x):
+        raise NotImplementedError()
+    
+    @property
+    def start(self):
+        if len(self.lexemes) > 0:
+            return self.lexemes[0].start
+        else
+            return Position((0,1,0))
       
-    def insert(self, i, arg):
-        assert i <= len(self), str(i) + " " + str(len(self))
+    @property
+    def end(self):
+        if len(self.lexemes) > 0:
+            return self.lexemes[-1].end
+        else
+            return Position((0,1,0))
+    
+    def position_after(self):
+        if len(self.lexemes) > 0:
+            return self.lexemes[-1].position_after()
+        else
+            return Position((0,1,0))
+        
+
+    def insert(self, i, x):
+        assert i <= len(self.lexemes), str(i) + " " + str(len(self.lexemes))
         assert i >= 0
-        if not isinstance(arg, list):
-          arg = [arg]
-        if not isinstance(arg, ucSource):
-          arg = ucSource(arg)
-        a = copy(arg)
-        a.settle()
-        width = 0
-        if (a[0].start.l == a[-1].end.l):
-          width = a[-1].end.c - a[0].start.c
-        height = a[-1].end.l - a[0].start.l
-        oldend = self[-1].end.l
-        for j in range(0, len(a)):
-          ((startL, startC), (endL, endC)) = (a[j].start, a[j].end)
-          #info(repr(self[i-1]))
-          #info(repr(a[j]))
-          #info(repr(self[i]))
-          if startL == 1:
-            startC += self[i-1].end.c
-          if endL == 1:
-            endC += self[i-1].end.c
-          startL += self[i-1].end.l-1
-          endL += self[i-1].end.l-1
-          a[j] = a[j].__class__((a[j][0], a[j][1], ucPos((startL, startC)), ucPos((endL, endC)), a[j][4]))
-          #info(" >" + repr(self[i-1]))
-          #info(" >" + repr(a[j]))
-          #info(" >" + repr(self[i]))
-        for j in range(i, len(self)):
-          ((startL, startC), (endL, endC)) = (self[j].start, self[j].end)
-          if startL == a[-1].end.l:
-            startC += width+1
-          if endL == a[-1].start.l:
-            endC += width+1
-          startL += height
-          endL += height
-          self[j:j+1] = [self[j].__class__((self[j][0], self[j][1], ucPos((startL, startC)), ucPos((endL, endC)), self[j][4]))]
-        #info(" >>" + repr(self[i-1]))
-        #info(" >>" + repr(a[0]))
-        #info(" >>" + repr(self[i]))
-        for j in range(0, len(a)):
-          r = super(ucSource, self).insert(i+j, a[j])
-        #info(" >>>" + repr(self[i-1]))
-        #info(" >>>" + repr(self[i]))
-        #info(" >>>" + repr(self[i+1]))
-        #if ( self[-1].end.l > oldend +1):
-          #info(str(self[-1].end.l) + " > " + str(oldend + 1))
-          #assert(false, 'waugh!')
+        if len(x.lexemes) == 0: # no-op
+            return self.lexemes
+        assert isinstance(x, self.__class__)
+        before = self.lexemes[0:i]
+        after = self.lexemes[i:len(lexemes)]
+        
+        if len(before) > 0:
+            to_x = before[-1].position_after()
+        else:
+            to_x = Position((0,1,0))
+        first_x = x.start
+        after_x = x.position_after()
+        scooted = [
+                l.scoot(first_x, to_x) for l in x.lexemes
+                ]
+        part = before + scooted
+        
+        if len(part) > 0:
+            to_after = part[-1].position_after()
+        else:
+            to_after = Position((0,1,0))
+        if len(after) > 0:
+            first_after = after[0].start
+        else:
+            first_after = Position((0,1,0))
+            self.lexemes = (
+                part
+                + [
+                    l.scoot(first_after, to_after) for l in after
+                    ]
+                )
+        else:
+            self.lexemes = part
+        
+        self.line_char_indices = None
+        self.line_lexeme_indices = None
+        
+        self.text = (self.text[:to_x.i] 
+                     + x.text[first_x.i:after_x.i]
+                     + self.text[to_x.i+1:])
+        
         if ucParanoid:
             self.check()
-        return a
+        return scooted
     
     def pop(self, i):
-        assert i < len(self)
+        assert i < len(self.lexemes)
         assert i >= 0
-        r = super(ucSource, self).pop(i)
-        removedLines = r.lines()
-        for j in range(i, len(self)):
-          ((startL, startC), (endL, endC)) = (self[j].start, self[j].end)
-          if startL == r.end.l:
-            startC += r.start.c - r.end.c
-            if endL == startL:
-              endC += r.start.c - r.end.c
-          startL -= r.lines()
-          endL -= r.lines()
-          self[j:j+1] = [self[j].__class__((self[j][0], self[j][1], ucPos((startL, startC)), ucPos((endL, endC)), self[j][4]))]
+        removed = self.lexemes[i]
+        from_ = removed.position_after()
+        to = removed.start
+        self.lexemes = (
+            self.lexemes[:i]
+            + [
+                l.scoot(from_, to) for l in self.lexemes[i+1:]
+                ]
+            )
         if ucParanoid:
-            self.check()
-        return r
+          self.check()
+        return removed
 
     def scrubbed(self):
-        raise NotImplementedError
+        raise NotImplementedError()
         
-    if ucParanoid:
-        def __setitem__(self, index, value):
-            if isinstance(value, list):
-                for i in value:
-                    assert isinstance(i, ucLexeme)
-            else:
-                assert isinstance(value, ucLexeme)
-            r = super(ucSource, self).__setitem__(index, value)
-            if isinstance(index, int):
-                self.check(index-1, index+2)
-            return r
-       
-        # Taken from the python documentation: http://docs.python.org/2/reference/datamodel.html v2.7.5 November 2013
-        # Licesne: PSF
-        def __setslice__(self, i, j, seq):
-            self[max(0, i):max(0, j):] = seq
-        # End License
+    def whitespace(self, lines, cols, chars):
+        """
+        compute a string with chars characters of whitespace with lines number
+        of line breaks and cols number of cols in the last line
+        """
+        extra = chars - (lines * len(self.linesep) + cols)
+        assert extra >= 0
+        return " " * extra + self.linesep * lines + " " * cols
     
-    def sort():
-      raise TypeError("Je refuse!")
-    
-    def deLexWithCharPositions(self):
-        from StringIO import StringIO
+    def de_lex(self):
+        assert self.text is None
+        if self.linesep is None:
+            self.guess_linesep()
         line = 1
         col = 0
+        idx = 0
         src = StringIO()
-        charpositions = {}
-        for j in range(0, len(self)):
-            l = self[j]
-            if line < l[2][0]:
-                src.write(os.linesep * (l[2][0] - line))
-                col = 0
-                line += (l[2][0] - line)
-            if col < l[2][1]:
-                src.write(" "  * (l[2][1] - col))
-                col += (l[2][1] - col)
-            #for i in range(len(src), len(src) + len(l[1])):
-              #charpositions[i] = j
-            src.write(l[1])
-            nls = l[1].count(os.linesep)
-            if (nls > 0):
-                line += nls
-                col = len(l[1].splitlines().pop())
+        for j in range(0, len(self.lexemes)):
+            l = self.lexemes[j]
+            lines = l.start.line - line
+            if lines == 0:
+                cols = l.start.col - col
             else:
-                col += len(l[1])
+                cols = l.start.col
+            chars = l.start.index - idx
+            src.write(self.whitespace(lines, cols, chars))
+            src.write(l.value())
+            line = l.end.line
+            col = l.end.column
+            idx = l.end.idx
         src.flush()
-        return (src.getvalue(), charpositions)
+        self.text = src.getvalue()
         
-    
-    def deLex(self):
-        src, charpositions = self.deLexWithCharPositions()
-        return src
-      
 # rwfubmqqoiigevcdefhmidzavjwg
