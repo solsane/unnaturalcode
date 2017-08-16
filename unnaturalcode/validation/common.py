@@ -17,17 +17,19 @@
 #    along with UnnaturalCode.  If not, see <http://www.gnu.org/licenses/>.
 
 from unnaturalcode.ucUtil import *
-from unnaturalcode.unnaturalCode import *
-from unnaturalcode.pythonSource import *
-from unnaturalcode.mitlmCorpus import *
-from unnaturalcode.sourceModel import *
+from unnaturalcode.source import Source, Lexeme, Position
 from unnaturalcode.mutators import Mutators
-from unnaturalcode.ucUser import pyUser
 
 mutators = Mutators()
 
-from logging import debug, info, warning, error
 import logging
+logger = logging.getLogger(__name__)
+DEBUG = logger.debug
+INFO = logger.info
+WARNING = logger.warning
+ERROR = logger.error
+CRITICAL = logger.critical
+
 from os import path
 
 import csv
@@ -35,15 +37,6 @@ from shutil import copyfile
 from tempfile import mkstemp, mkdtemp
 import os, re, site
 import sqlite3
-
-from unnaturalcode import flexibleTokenize
-
-nonWord = re.compile('\\W+')
-beginsWithWhitespace = re.compile('^\\w')
-numeric = re.compile('[0-9]')
-punct = re.compile('[~!@#$%^%&*(){}<>.,;\\[\\]`/\\\=\\-+]')
-funny = re.compile(flexibleTokenize.Funny)
-name = re.compile(flexibleTokenize.Name)
 
 class HaltingError(Exception):
   def __init__(self, value):
@@ -56,7 +49,7 @@ class ValidationFile(object):
     
     def __init__(self, 
                  good_path, 
-                 tempDir, 
+                 temp_dir, 
                  bad_path=None,
                  check=True):
         self.good_path = path
@@ -76,16 +69,19 @@ class ValidationFile(object):
             self.bad_lexed = self.language(self.bad_text)
             if check:
                 assert len(self.bad_lexed.check_syntax()) > 0
-        self.tempDir = tempDir
+        self.temp_dir = temp_dir
         
     def compute_change(self):
-        assert isinstance(self.bad_lexemes, ucSource)
+        assert isinstance(self.bad_lexemes, Source)
     
-    def mutate(self, new_lexemes):
+    def mutate(self, new_lexemes, change=None):
         #TODO: check_syntax?
         self.bad_lexemes = lexemes
         self.bad_lexemes.check()
-        self.compute_change()
+        if change is None:
+            self.compute_change()
+        else:
+            self.change = change
 
 class ValidationCorpus(object):
     def __init__(
