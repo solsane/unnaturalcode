@@ -25,7 +25,7 @@ ERROR = logger.error
 CRITICAL = logger.critical
 
 from copy import copy
-from StringIO import StringIO
+from six import StringIO
 
 if hasattr(sys, 'maxint'): # Python 2/3 Compatibility
   maxint = sys.maxint
@@ -170,7 +170,7 @@ class Lexeme(tuple):
     
     def new_position(self, start, end):
         """Return a copy of this lexeme object but with the positions modified"""
-        return self.__class__(self[0], self[1], Position((start, end, self[4]))
+        return self.__class__(self[0], self[1], Position((start, end, self[4])))
                               
     def scoot(self, from_, to):
         """
@@ -223,10 +223,10 @@ class Source(object):
                 self.lexeme_class(i) for i in lexed
                 ])
         else:
-            raise AttributeError, type(lexed).__name__
+            raise AttributeError(type(lexed).__name__)
         self.lexer_args = kwargs
         if self.lexemes == None and self.text == None:
-            raise AttributeError, type(lexed).__name__
+            raise AttributeError(type(lexed).__name__)
         elif self.lexemes == None:
             self.lex()
         elif self.text == None:
@@ -291,7 +291,7 @@ class Source(object):
         assert self.lexemes is not None
         l = 0
         lines = [0]
-        for i in range(0, len(self.lexemes):
+        for i in range(0, len(self.lexemes)):
             lexeme = self.lexemes[i]
             if lexeme.start.line > l:
                 for li in range(l+1, lexme.start.line+1):
@@ -377,20 +377,20 @@ class Source(object):
     def start(self):
         if len(self.lexemes) > 0:
             return self.lexemes[0].start
-        else
+        else:
             return Position((0,1,0))
       
     @property
     def end(self):
         if len(self.lexemes) > 0:
             return self.lexemes[-1].end
-        else
+        else:
             return Position((0,1,0))
     
     def position_after(self):
         if len(self.lexemes) > 0:
             return self.lexemes[-1].position_after()
-        else
+        else:
             return Position((0,1,0))
         
 
@@ -428,8 +428,6 @@ class Source(object):
                     l.scoot(first_after, to_after) for l in after
                     ]
                 )
-        else:
-            self.lexemes = part
         
         self.line_char_indices = None
         self.line_lexeme_indices = None

@@ -31,8 +31,8 @@ from unnaturalcode.validation.file import ValidationFile
 
 class ValidationMain(object):
     
-    self.validation_file_class = ValidationFile
-    self.validation_test_class = ValidationTest
+    validation_file_class = ValidationFile
+    validation_test_class = ValidationTest
     
     def add_args(self, parser):
         """For overriding in subclasses to add more args."""
@@ -79,9 +79,6 @@ class ValidationMain(object):
         output_dir = ((args.output_dir 
                                 or os.getenv("ucResultsDir", None)) 
                             or mkdtemp(prefix='ucValidation-'))
-
-        testFileList = args.test_file_list
-        testProjectFiles = open(testFileList).read().splitlines()
         
         tools = tools_by_name(args.tools, 
                                 language_file=self.validation_file_class,

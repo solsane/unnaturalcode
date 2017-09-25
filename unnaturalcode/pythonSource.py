@@ -16,8 +16,8 @@
 #    You should have received a copy of the GNU Affero General Public License
 #    along with UnnaturalCode.  If not, see <http://www.gnu.org/licenses/>.
 
-from unnaturalcode.ucUtil import *
-from unnaturalcode.unnaturalCode import *
+from unnaturalcode.util import *
+from unnaturalcode.source import *
 from logging import debug, info, warning, error
 
 from unnaturalcode import flexibleTokenize
@@ -35,7 +35,7 @@ ws = re.compile('\s')
 
 # TODO: Refactor so base class is genericSource
 
-class pythonLexeme(ucLexeme):
+class pythonLexeme(Lexeme):
     
     @classmethod
     def stringify_build(cls, t, v):
@@ -74,7 +74,7 @@ class pythonLexeme(ucLexeme):
         return (self.ltype == 'COMMENT')
       
 
-class pythonSource(ucSource):
+class pythonSource(Source):
     
     lexemeClass = pythonLexeme
     

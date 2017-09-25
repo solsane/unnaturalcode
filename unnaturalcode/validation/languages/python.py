@@ -36,8 +36,8 @@ import traceback
 import runpy
 
 from unnaturalcode.validation.test import ValidationTest
-from unnaturalcode.validation.test import ValidationMain
-from unnaturalcode.validation.test import ValidationFile
+from unnaturalcode.validation.main import ValidationMain
+from unnaturalcode.validation.file import ValidationFile
 
 from unnaturalcode.pythonSource import pythonSource
 
@@ -167,7 +167,7 @@ class PythonValidationFile(ValidationFile):
         return (filename, line, func, text, exceptionName)
 
 class PythonValidationTest(ValidationTest):
-    def __init__(self, run=False **kwargs)
+    def __init__(self, run=False, **kwargs):
         super(PythonValidationTest,self).__init__(**kwargs)
         self.run = run
         
@@ -177,8 +177,8 @@ class PythonValidationTest(ValidationTest):
             fi.run_good()
 
 class PythonValidationMain(ValidationMain):
-    self.validation_file_class = PythonValidationFile
-    self.validation_test_class = PythonValidationTest
+    validation_file_class = PythonValidationFile
+    validation_test_class = PythonValidationTest
     
     def add_args(self, parser):
         parser.add_argument('-v', '--virtualenv', 

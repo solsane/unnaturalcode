@@ -28,13 +28,18 @@ class Result(object):
     @classmethod
     def column_names(cls):
         return [i % (cls.db_name)
-                for i in ["%s_rank",
-                "%s_start_line",
-                "%s_start_col",
-                "%s_end_line",
-                "%s_end_col",
-                "%s_top_distance_lines",
-                "%s_top_distance_toks"
+                for i in [
+                    "%s_rank",
+                    "%s_index",
+                    "%s_start_line",
+                    "%s_start_col",
+                    "%s_end_line",
+                    "%s_end_col",
+                    "%s_top_distance_lines",
+                    "%s_top_distance_toks",
+                    "%s_token_type",
+                    "%s_token_value",
+                    "%s_operation"
                 ]
             ]
 
