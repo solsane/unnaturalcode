@@ -15,10 +15,7 @@
 #    You should have received a copy of the GNU Affero General Public License
 #    along with UnnaturalCode.  If not, see <http://www.gnu.org/licenses/>.
 
-from unnaturalcode.ucUtil import *
-from unnaturalcode.mitlmCorpus import *
-from unnaturalcode.pythonSource import *
-from unnaturalcode.unnaturalCode import ucLexeme
+from unnaturalcode.source import Lexeme
 from operator import itemgetter
 from logging import debug, info, warning, error
 import os.path
@@ -26,7 +23,7 @@ import pickle
 
 class sourceModel(object):
 
-    def __init__(self, cm=mitlmCorpus(), language=pythonSource, windowSize=20):
+    def __init__(self, cm, language, windowSize=20):
         self.cm = cm
         self.lang = language
         self.windowSize = windowSize
@@ -239,7 +236,7 @@ class sourceModel(object):
         else:
             return (False, attempt, "Replace", loci, attempt[loci], bestresults[0][1])
 
-    def fixQuery(self, lexemes, location):
+    def fixQueryICSME(self, lexemes, location):
         found = False
         for loci in range(0, len(lexemes)):
             if location.start == lexemes[loci].start:
@@ -258,5 +255,11 @@ class sourceModel(object):
         fixes = sorted(fixes, key=itemgetter(5), reverse=False)
         return fixes[0]
 
+    def fix(self, lexemes):
+        windows, unwindows = self.unwindowedQuery(lexemes)
+        ERROR(len(windows))
+        ERROR(len(unwindows))
+        
+    
     def release(self):
         self.cm.release()

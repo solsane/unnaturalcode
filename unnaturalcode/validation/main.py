@@ -23,11 +23,13 @@ INFO = logger.info
 WARNING = logger.warning
 ERROR = logger.error
 CRITICAL = logger.critical
+import sys
 
 from tempfile import mkdtemp
 
 from unnaturalcode.validation.test import ValidationTest
 from unnaturalcode.validation.file import ValidationFile
+from unnaturalcode.validation.tools import tools_by_name
 
 class ValidationMain(object):
     
@@ -43,6 +45,7 @@ class ValidationMain(object):
         pass
    
     def main(self):
+        logging.basicConfig(stream=sys.stderr, level=logging.NOTSET)
         from argparse import ArgumentParser
         parser = ArgumentParser(description="Test and Valide UnnaturalCode")
         parser.add_argument('-t', '--mutation-file-list', nargs='?', 
@@ -72,7 +75,6 @@ class ValidationMain(object):
         self.add_args(parser) # get more args from subclasses
         
         args=parser.parse_args()
-        logging.getLogger().setLevel(logging.DEBUG)
 
         test_extra_options = self.read_args(args) # let subclasses read their args
         
@@ -80,12 +82,11 @@ class ValidationMain(object):
                                 or os.getenv("ucResultsDir", None)) 
                             or mkdtemp(prefix='ucValidation-'))
         
-        tools = tools_by_name(args.tools, 
+        tools = tools_by_name(args.tool, 
                                 language_file=self.validation_file_class,
                                 train=args.train_file_list,
                                 keep=args.keep_corpus,
-                                corpus=mitlmCorpus,
-                                output_dir=output_dir,
+                                results_dir=output_dir,
                             )
         
         test = self.validation_test_class(
@@ -98,18 +99,18 @@ class ValidationMain(object):
             test.add_mutation_tests(
                 test=args.mutation_file_list,
                 retry_valid=args.retry_valid,
-                mutations=args.mutations,
+                mutations=args.mutation,
                 n=args.iterations,
-                tools=args.tools
+                tools=tools
                 )
         
         if args.pair_file_list:
             test.add_pair_tests(
                 test=args.mutation_file_list,
-                tools=args.tools
+                tools=tools
             )
-            
+        ERROR(type(test))
         test.resume()
-        
-        test.run()
+        ERROR(type(test))
+        test.go()
             

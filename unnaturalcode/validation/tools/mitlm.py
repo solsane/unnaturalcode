@@ -16,7 +16,16 @@
 #    You should have received a copy of the GNU Affero General Public License
 #    along with UnnaturalCode.  If not, see <http://www.gnu.org/licenses/>.
 
+import logging
+logger = logging.getLogger(__name__)
+DEBUG = logger.debug
+INFO = logger.info
+WARNING = logger.warning
+ERROR = logger.error
+CRITICAL = logger.critical
+
 import os
+import sys
 
 from unnaturalcode.validation.tools import Tool
 from unnaturalcode.sourceModel import sourceModel
@@ -29,21 +38,22 @@ class Mitlm(Tool):
             keep,
             **kwargs
         ):
-        super(MITLM, self).__init__(**kwargs)
-        self.corpus=mitlmCorpus
-        self.sm = sourceModel(cm=self.corpus, language=self.language)
+        super(Mitlm, self).__init__(**kwargs)
         assert os.access(self.results_dir, os.X_OK & os.R_OK & os.W_OK)
-        self.corpus_path = os.path.join(self.resultsDir, 'validationCorpus')
+        self.corpus_path = os.path.join(self.results_dir, 'validationCorpus')
+        self.corpus=mitlmCorpus(readCorpus=self.corpus_path,
+                                writeCorpus=self.corpus_path)
+        self.sm = sourceModel(cm=self.corpus, language=self.language)
         if train:
             if keep:
                 pass
-            elif os.path.exists(self.corpusPath):
-                os.remove(self.corpusPath)
+            elif os.path.exists(self.corpus_path):
+                os.remove(self.corpus_path)
             if keep:
                 pass
-            elif os.path.exists(self.corpusPath + ".uniqueTokens"):
-                os.remove(self.corpusPath + ".uniqueTokens")
-            self.train_files(train):
+            elif os.path.exists(self.corpus_path + ".uniqueTokens"):
+                os.remove(self.corpus_path + ".uniqueTokens")
+            self.train_files(train)
     
     def train_files(self, train):
         self.file_names = open(train).read().splitlines()
@@ -51,8 +61,9 @@ class Mitlm(Tool):
         n_added = 0
         for fi in self.file_names:
             try:
-                valid_fi = self.language_file(fi, self.results_dir)
-                info("Using %s for training." % (fi))
+                valid_fi = self.language_file(good_path=fi,
+                                              temp_dir=self.results_dir)
+                INFO("Using %s for training." % (fi))
                 self.sm.trainLexemes(fi.scrubbed)
                 n_added += 1
                 #if (len(valid_fi.lexed) > self.sm.windowSize) and testing:
@@ -60,9 +71,9 @@ class Mitlm(Tool):
                     #info("Using %s in %s mode for testing." % (fi, valid_fi.mode))
                     #nAdded += 1
             except:
-                info("Skipping %s !!!" % (fi), exc_info=sys.exc_info())
+                INFO("Skipping %s !!!" % (fi), exc_info=sys.exc_info())
                 n_skipped += 1
-        info("Using: %i, Skipped: %i" % (n_added, n_skipped))
+        INFO("Using: %i, Skipped: %i" % (n_added, n_skipped))
     
-    def query(self, bad_text):
-        
+    def query(self, bad_lexemes):
+        fixes = self.sm.fix(lexemes)

@@ -22,7 +22,7 @@ class Tool(object):
                  results_dir,
                  train=None, # ignored 
                  keep=None # ignored
-                 )
+                 ):
         self.language_file=language_file
         self.language=language_file.language
         self.results_dir = results_dir
@@ -34,7 +34,7 @@ class Tool(object):
         raise NotImplementedError()
 
 class Tools(object):
-    def MITLM(**kwargs):
+    def mitlm(**kwargs):
         from unnaturalcode.validation.tools.mitlm import Mitlm
         return Mitlm(**kwargs)
 

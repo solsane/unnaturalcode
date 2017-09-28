@@ -25,6 +25,7 @@ ERROR = logger.error
 CRITICAL = logger.critical
 
 from os import path
+import codecs
 
 class ValidationFile(object):
     language = None
@@ -41,10 +42,10 @@ class ValidationFile(object):
                  temp_dir, 
                  bad_path=None,
                  check=True):
-        self.good_path = path
-        with codecs.open(path, 'r', 'UTF-8') as good_fileh:
-            self.good_text = self.good_fileh.read()
-        self.good_lexed = self.language(self.good_text)
+        self.good_path = good_path
+        with codecs.open(good_path, 'r', 'UTF-8') as good_fileh:
+            self.good_text = good_fileh.read()
+        self.good_lexed = self.language(text=self.good_text)
         self.good_scrubbed = self.good_lexed.scrubbed()
         if check:
             assert self.check_syntax(self.good_lexed) == []
@@ -53,9 +54,9 @@ class ValidationFile(object):
         self.bad_lexed = None
         if bad_path is not None:
             self.bad_path = bad_path
-            with codecs.open(path, 'r', 'UTF-8') as bad_fileh:
-                self.bad_text = self.bad_fileh.read()
-            self.bad_lexed = self.language(self.bad_text)
+            with codecs.open(bad_path, 'r', 'UTF-8') as bad_fileh:
+                self.bad_text = bad_fileh.read()
+            self.bad_lexed = self.language(text=self.bad_text)
             if check:
                 assert len(self.check_syntax(self.bad_lexed)) > 0
         self.temp_dir = temp_dir

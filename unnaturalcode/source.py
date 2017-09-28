@@ -25,7 +25,7 @@ ERROR = logger.error
 CRITICAL = logger.critical
 
 from copy import copy
-from six import StringIO
+from six import StringIO, string_types
 
 if hasattr(sys, 'maxint'): # Python 2/3 Compatibility
   maxint = sys.maxint
@@ -37,6 +37,7 @@ PARANOID = os.getenv("PARANOID", False)
 class Position(tuple):
     if PARANOID:
         def __init__(self, *args):
+            assert len(self) == 3
             assert isinstance(self[0], int)
             assert isinstance(self[1], int)
             if self[2] is not None:
@@ -82,16 +83,16 @@ class Lexeme(tuple):
         def __init__(self, *args):
             assert len(self) == 5
             assert self[0]
-            assert isinstance(self[0], basestring), self[0]
+            assert isinstance(self[0], string_types), self[0]
             assert len(self[0]) > 0
-            assert isinstance(self[1], basestring)
+            assert isinstance(self[1], string_types)
             assert (len(self[1]) > 0 
                     or self[0] == "LMEndPadding"
                     or self[0] == "LMStartPadding"), repr(self)
             assert isinstance(self[2], Position)
             assert isinstance(self[3], Position)
             assert self[2] <= self[3], "%s > %s" % (self[2], self[3])
-            assert isinstance(self[4], basestring)
+            assert isinstance(self[4], string_types)
             assert len(self[4]) > 0
             
     
@@ -211,28 +212,43 @@ class Source(object):
     """
   
     lexeme_class = Lexeme
+    
+    def lex(self, code):
+        """
+        Perform lexical analysis, return the result.
+        """
+        raise NotImplementedError()
 
     def __init__(self, lexed=None, text=None, **kwargs):
-        if isinstance(text, basestring):
-            self.text = text
+        self.text = text
         if isinstance(lexed, Source):
-            assert text is None # would be overwritten by lexed.text
-            self.extend(lexed)
+            assert isinstance(lexed.lexemes, list)
+            self.lexemes = copy(lexed.lexemes)
         elif isinstance(lexed, list):
-            self.lexemes.extend([
+            self.lexemes = [
                 self.lexeme_class(i) for i in lexed
-                ])
+                ]
+        elif lexed is None:
+            self.lexemes = lexed
         else:
             raise AttributeError(type(lexed).__name__)
         self.lexer_args = kwargs
-        if self.lexemes == None and self.text == None:
-            raise AttributeError(type(lexed).__name__)
-        elif self.lexemes == None:
-            self.lex()
-        elif self.text == None:
-            self.de_lex()
         self.linesep = None
+        if self.lexemes is None and self.text is None:
+            raise AttributeError(type(lexed).__name__)
+        elif self.lexemes is None:
+            self.lexemes = self.lex(self.text)
+        elif self.text is None:
+            self.text = self.de_lex()
+        assert self.lexemes is not None
+        assert self.text is not None
     
+    def __copy__(self):
+        return self.__class__(
+            lexed=copy(self.lexemes), 
+            text=self.text, 
+            **self.lexer_args)
+
     def guess_linesep(self):
         if self.text is not None:
             if '\r' in self.text and '\n' in self.text:
@@ -245,7 +261,7 @@ class Source(object):
                 self.linesep = '\r'
                 return
         if self.lexemes is not None:
-            for l in lexemes:
+            for l in self.lexemes:
                 if '\r' in l.value and '\n' in l.value:
                     self.linesep = '\r\n'
                     return
@@ -493,7 +509,4 @@ class Source(object):
         self.text = src.getvalue()
         return self.text
     
-    def __copy__(self):
-        return self.__class__(self)
-        
 # rwfubmqqoiigevcdefhmidzavjwg

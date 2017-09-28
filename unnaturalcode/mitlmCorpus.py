@@ -19,11 +19,12 @@ from __future__ import print_function
 import os
 import os.path
 import errno
-from unnaturalcode.unnaturalCode import *
+from unnaturalcode.source import Lexeme
 import logging
 from logging import debug, info, warning, error, getLogger
 import codecs
 import pymitlm
+import re
 
 allWhitespace = re.compile('^\s+$')
 
@@ -38,7 +39,7 @@ class mitlmCorpus(object):
     Interface to an MITLM corpus.
     """
 
-    def __init__(self, readCorpus=None, writeCorpus=None, uc=unnaturalCode(), order=10):
+    def __init__(self, readCorpus=None, writeCorpus=None, order=10):
         self.readCorpus = (readCorpus or os.getenv("ucCorpus", "/tmp/ucCorpus"))
         self.writeCorpus = (writeCorpus or os.getenv("ucWriteCorpus", self.readCorpus))
         self.corpusFile = False

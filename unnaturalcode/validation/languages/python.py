@@ -118,6 +118,8 @@ def runFile(q,path,mode):
     q.put((None, "None", [(path, None, None, None)]))
 
 class PythonValidationFile(ValidationFile):
+    language = pythonSource
+    
     def run_path(self, path):
         q = Queue()
         p = Process(target=runFile, args=(q,path,self.mode))

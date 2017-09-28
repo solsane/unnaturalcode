@@ -16,13 +16,18 @@
 #    You should have received a copy of the GNU Affero General Public License
 #    along with UnnaturalCode.  If not, see <http://www.gnu.org/licenses/>.
 
+
+import sys
+from copy import copy
+import token
+
 from unnaturalcode.util import *
-from unnaturalcode.source import *
+from unnaturalcode.source import Source, Lexeme, Position
 from logging import debug, info, warning, error
 
 from unnaturalcode import flexibleTokenize
 
-import sys, token, zmq;
+
 try:
   from cStringIO import StringIO
 except ImportError:
@@ -67,7 +72,7 @@ class pythonLexeme(Lexeme):
             t0 = token.tok_name[tup[0]]
         else:
             t0 = tup[0]
-        new = tuple.__new__(cls, (t0, tup[1], ucPos(tup[2]), ucPos(tup[3]),  cls.stringify_build(t0, tup[1])))
+        new = tuple.__new__(cls, (t0, tup[1], Position(tup[2]), Position(tup[3]),  cls.stringify_build(t0, tup[1])))
         return new
           
     def comment(self):
@@ -90,7 +95,7 @@ class pythonSource(Source):
     
     def scrubbed(self):
         """Clean up python source code removing extra whitespace tokens and comments"""
-        ls = copy(self)
+        ls = copy(self.lexemes)
         assert len(ls)
         i = 0
         r = []

@@ -24,6 +24,9 @@ WARNING = logger.warning
 ERROR = logger.error
 CRITICAL = logger.critical
 
+import os
+import sys
+
 import sqlite3
 
 from unnaturalcode.validation.result import (
@@ -33,6 +36,8 @@ from unnaturalcode.validation.result import (
     ValidFix,
     TrueFix
     )
+
+from unnaturalcode.validation.task import MutationTask
 
 class ValidationTest(object):
     fields = [  
@@ -63,6 +68,7 @@ class ValidationTest(object):
     def __init__(self, language_file, output_dir):
         self.language_file = language_file
         self.language = language_file.language
+        assert output_dir is not None
         self.results_dir = output_dir
         self.conn = sqlite3.connect(self.sqlite_file_path())
         self.result_columns = [column
@@ -78,10 +84,10 @@ class ValidationTest(object):
                 + self.columns +
                 ")")
         self.conn.commit()
-        tasks = []
+        self.tasks = []
         
     def sqlite_file_path(self):
-        os.path.join(self.results_dir, "results.sqlite3")
+        return os.path.join(self.results_dir, "results.sqlite3")
     
     def check_file(self, fi):
         """
@@ -118,16 +124,30 @@ class ValidationTest(object):
         for fi in self.file_names:
             try:
                 good_file_name = fi
-                valid_fi = self.language_file(good_file_name)
+                valid_fi = self.language_file(good_path=good_file_name,
+                                              temp_dir=self.results_dir)
                 self.check_good_file(valid_fi)
                 INFO("Using %s for testing." % (fi))
                 n_added += 1
             except:
                 INFO("Skipping %s !!!" % (fi), exc_info=sys.exc_info())
                 n_skipped += 1
+                break
             for mi in mutations:
                 mutation_name = mi.replace('-', '_')
                 task = MutationTask(self, valid_fi, tools, mutation_name, n)
                 self.tasks.append(task)
-        INFO("Using: %i, Skipped: %i" % (n_added, n_skipped)) 
-            
+        INFO("Using: %i, Skipped: %i" % (n_added, n_skipped))
+    
+    def resume(self):
+        assert len(self.tasks) > 0
+        for task in self.tasks:
+            task.resume()
+    
+    def go(self):
+        # we can't call this run because run is the boolean whether we should
+        # run the files or just parse them 
+        for task in self.tasks:
+            task.run()
+    
+    
