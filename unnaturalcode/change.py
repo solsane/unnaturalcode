@@ -1,4 +1,4 @@
-#    Copyright 2013, 2014, 2017 Joshua Charles Campbell
+#    Copyright 2017 Joshua Charles Campbell
 #
 #    This file is part of UnnaturalCode.
 #    

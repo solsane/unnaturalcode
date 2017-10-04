@@ -27,6 +27,10 @@ CRITICAL = logger.critical
 from os import path
 import codecs
 
+from unnaturalcode.source_diff import Diff
+
+PARANOID = os.getenv("PARANOID", False)
+
 class ValidationFile(object):
     language = None
     
@@ -63,7 +67,8 @@ class ValidationFile(object):
         self.temp_dir = temp_dir
         
     def compute_change(self):
-        assert isinstance(self.bad_lexemes, Source)
+        Diff(self.good_lexed, self.bad_lexed)
+        
     
     def mutate(self, new_lexemes, change=None):
         #TODO: check_syntax?
@@ -71,5 +76,8 @@ class ValidationFile(object):
         if change is None:
             self.compute_change()
         else:
+            if PARANOID:
+                self.compute_change()
+                assert self.change == change
             self.change = change
 

@@ -1,6 +1,8 @@
 from copy import copy
 from random import randint
 
+from unnaturalcode.change import Change
+
 class Mutators(object):
 
     def delete_token(self, v_file):
@@ -11,7 +13,16 @@ class Mutators(object):
         token = ls.pop(idx)
         if token.type == 'ENDMARKER':
           return self.delete_token(v_file)
-        v_file.mutate(ls)
+        change = Change((
+            'delete',
+            idx,
+            idx+1,
+            idx,
+            idx,
+            [token],
+            []
+            ))
+        v_file.mutate(ls, change)
         return None
             
     def insert_token(self, v_file):
