@@ -41,3 +41,4 @@ class Tools(object):
 def tools_by_name(names, **kwargs):
     tools = [getattr(Tools, name.lower()) for name in names]
     tools = [tool(**kwargs) for tool in tools]
+    return tools

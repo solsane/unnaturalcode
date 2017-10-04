@@ -1,22 +1,21 @@
 from copy import copy
 from random import randint
 
-
 class Mutators(object):
 
     def delete_token(self, v_file):
         """Delete a random token from a file."""
-        ls = copy(v_file.scrubbed)
-        idx = randint(1, len(ls)-2)
-        after = ls[idx+1]
+        ls = copy(v_file.good_scrubbed)
+        idx = randint(1, ls.n_lexemes-2)
+        after = ls.lexemes[idx+1]
         token = ls.pop(idx)
         if token.type == 'ENDMARKER':
-          return self.deleteRandom(v_file)
-        v_file.mutate(ls, ls[idx-1], token, after)
+          return self.delete_token(v_file)
+        v_file.mutate(ls)
         return None
             
     def insert_token(self, v_file):
-        ls = copy(v_file.scrubbed)
+        ls = copy(v_file.good_scrubbed)
         token = ls[randint(0, len(ls)-1)]
         pos = randint(1, len(ls)-2)
         inserted = ls.insert(pos, token)
@@ -26,7 +25,7 @@ class Mutators(object):
         return None
             
     def replace_token(self, v_file):
-        ls = copy(v_file.scrubbed)
+        ls = copy(v_file.good_scrubbed)
         token = ls[randint(0, len(ls)-1)]
         pos = randint(1, len(ls)-2)
         oldToken = ls.pop(pos)
@@ -197,3 +196,7 @@ class Mutators(object):
         v_file.mutatedLexemes = v_file.lm(new)
         v_file.mutatedLocation = pythonLexeme.fromTuple((token.OP, c, (line, lineChar), (line, lineChar)))
         return None
+
+def get_mutation_by_name(name):
+    name = name.replace('-', '_')
+    return getattr(Mutators(), name)

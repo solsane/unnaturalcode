@@ -16,29 +16,33 @@
 #    You should have received a copy of the GNU Affero General Public License
 #    along with UnnaturalCode.  If not, see <http://www.gnu.org/licenses/>.
 
+import logging
+logger = logging.getLogger(__name__)
+DEBUG = logger.debug
+INFO = logger.info
+WARNING = logger.warning
+ERROR = logger.error
+CRITICAL = logger.critical
 
 import sys
 from copy import copy
 import token
-
-from unnaturalcode.util import *
-from unnaturalcode.source import Source, Lexeme, Position
-from logging import debug, info, warning, error
-
-from unnaturalcode import flexibleTokenize
-
+import tempfile
+import py_compile
 
 try:
   from cStringIO import StringIO
 except ImportError:
   from io import StringIO
 
+from unnaturalcode.util import *
+from unnaturalcode.source import Source, Lexeme, Position
+from unnaturalcode import flexibleTokenize
+from unnaturalcode.compile_error import CompileError
+
 COMMENT = 53
 
 ws = re.compile('\s')
-
-
-# TODO: Refactor so base class is genericSource
 
 class pythonLexeme(Lexeme):
     
@@ -67,12 +71,16 @@ class pythonLexeme(Lexeme):
             return '<' + t + '>'
     
     @classmethod
-    def fromTuple(cls, tup):
+    def fromTuple(cls, tup, lines):
         if isinstance(tup[0], int):
             t0 = token.tok_name[tup[0]]
         else:
             t0 = tup[0]
-        new = tuple.__new__(cls, (t0, tup[1], Position(tup[2]), Position(tup[3]),  cls.stringify_build(t0, tup[1])))
+        new = tuple.__new__(cls, (t0,
+                                  tup[1], 
+                                  Position.from2Tuple(tup[2], lines), 
+                                  Position.from2Tuple(tup[3], lines),  
+                                  cls.stringify_build(t0, tup[1])))
         return new
           
     def comment(self):
@@ -83,11 +91,13 @@ class pythonSource(Source):
     
     lexemeClass = pythonLexeme
     
-    def lex(self, code, mid_line=False):
-        tokGen = flexibleTokenize.generate_tokens(StringIO(code).readline,
+    def lex(self, mid_line=False):
+        
+        tokGen = flexibleTokenize.generate_tokens(
+            StringIO(self.text).readline,
             mid_line)
-        return [pythonLexeme.fromTuple(t) for t in tokGen]
-    
+        self.lexemes = [pythonLexeme.fromTuple(t, self.line_char_indices)
+                            for t in tokGen]
    
     def unCommented(self):
         assert len(self)
@@ -112,22 +122,28 @@ class pythonSource(Source):
                 r.append(ls[i])
         assert len(r)
         return pythonSource(r)
+    
+    def check_syntax(self):
+        temp_path = None
+        errors = []
+        with tempfile.NamedTemporaryFile(
+                suffix=".py", 
+                mode="w", 
+                delete=False) as f:
+            temp_path = f.name
+            f.write(self.text)
+        try:
+            py_compile.compile(temp_path, temp_path+"c", doraise=True)
+        except Exception as e:
+            ei = sys.exc_info();
+            success = False
+            ERROR(e)
+            ERROR(repr(e[1][1]))
+            errors.append(CompileError(
+                    filename=e.filename,
+                    line=e.lineno
+                ))
+        os.unlink(temp_path)
+        os.unlink(temp_path+"c")
+        return errors
 
-class LexPyMQ(object):
-	def __init__(self, lexer):
-		self.lexer = lexer
-		self.zctx = zmq.Context()
-		self.socket = self.zctx.socket(zmq.REP)
-
-	def run(self):
-		self.socket.bind("tcp://lo:32132")
-
-		while True:
-			msg = self.socket.recv_json(0)
-			# there are definitely new lines in the code
-			assert msg.get('python'), 'received non-python code'
-			code = msg.get('body', '')
-			self.socket.send_json(list(tokenize.generate_tokens(StringIO(code).readline)))
-
-if __name__ == '__main__':
-	LexPyMQ(LexPy()).run()

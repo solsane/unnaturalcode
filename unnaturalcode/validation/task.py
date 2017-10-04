@@ -43,10 +43,10 @@ class Task(object):
         
     def tool_finished(self, tool):
         return (self.conn.execute("SELECT COUNT(*) FROM results WHERE "
-                "good_file = ?, tool = ?, mutation_name = ?",
+                "good_file = ? AND tool = ? AND mutation = ?",
                 (self.validation_file.good_path,
                     tool.name,
-                    mutation_name
+                    self.mutation_name
                     )
                 )
             .fetchone()[0]
@@ -70,7 +70,7 @@ class Task(object):
     def run_tool(self, tool):
         """Called by self.run()"""
         if self.ran_tool(tool):
-            return
+            raise ValueError()
         tool_results = tool.query(self.validation_file.bad_lexed)
         insert = "INSERT INTO results(%s) values (?)" % (self.test.columns)
         values = [None] * len(self.test.columns)
@@ -108,16 +108,31 @@ class Task(object):
         for i in range(0,len(values)):
             assert values[i] is not None, self.test.columns[i]
             
+    def run(self):
+        for tool in self.tools:
+            self.run_tool(tool)
+
 class PairTask(Task):
     def __init__(self, test, validation_file, tools):
         super(PairTask, self).__init__(test, validation_file, tools, 1)
         self.mutation_name = "pair"
-        
-    def run(self):
-        for tool in tools:
-            self.run_tool(tool)
 
 class MutationTask(Task):
-    def __init__(self, test, validation_file, tools, mutation_name, n):
+    def __init__(self, test, validation_file, tools, mutation, n):
         super(MutationTask, self).__init__(test, validation_file, tools, n)
-        
+        self.mutation_name = mutation.__name__
+        self.mutation = mutation
+    
+    def run_tool(self, tool):
+        left = self.expected_per_tool - self.tool_finished(tool)
+        for i in range(0, left):
+            valid = True
+            while valid: # look for an invalid mutation
+                self.mutation(self.validation_file)
+                valid = ((
+                        len(self.validation_file.bad_lexed.check_syntax()) == 0
+                        ) 
+                    or (not self.test.retry_valid)
+                    )
+            super(MutationTask, self).run_tool(tool)
+

@@ -118,6 +118,7 @@ class ValidationTest(object):
         INFO("Using: %i, Skipped: %i" % (n_added, n_skipped)) 
     
     def add_mutation_tests(self, test, retry_valid, mutations, n, tools):
+        self.retry_valid = retry_valid
         self.file_names = open(test).read().splitlines()
         n_skipped = 0
         n_added = 0
@@ -133,9 +134,8 @@ class ValidationTest(object):
                 INFO("Skipping %s !!!" % (fi), exc_info=sys.exc_info())
                 n_skipped += 1
                 break
-            for mi in mutations:
-                mutation_name = mi.replace('-', '_')
-                task = MutationTask(self, valid_fi, tools, mutation_name, n)
+            for mutation in mutations:
+                task = MutationTask(self, valid_fi, tools, mutation, n)
                 self.tasks.append(task)
         INFO("Using: %i, Skipped: %i" % (n_added, n_skipped))
     

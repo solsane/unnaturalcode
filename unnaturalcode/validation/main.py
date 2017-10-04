@@ -30,6 +30,7 @@ from tempfile import mkdtemp
 from unnaturalcode.validation.test import ValidationTest
 from unnaturalcode.validation.file import ValidationFile
 from unnaturalcode.validation.tools import tools_by_name
+from unnaturalcode.validation.mutators import get_mutation_by_name
 
 class ValidationMain(object):
     
@@ -96,10 +97,13 @@ class ValidationMain(object):
         )
         
         if args.mutation_file_list:
+            mutations = [
+                get_mutation_by_name(mutation) for mutation in args.mutation
+            ]
             test.add_mutation_tests(
                 test=args.mutation_file_list,
                 retry_valid=args.retry_valid,
-                mutations=args.mutation,
+                mutations=mutations,
                 n=args.iterations,
                 tools=tools
                 )

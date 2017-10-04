@@ -32,7 +32,10 @@ class sourceModel(object):
         readTokenFile = self.cm.readCorpus + ".uniqueTokens"
         if os.path.isfile(readTokenFile):
           with open(readTokenFile, "rb") as f:
-            self.listOfUniqueTokens = pickle.load(f)
+            try:
+                self.listOfUniqueTokens = pickle.load(f)
+            except:
+                raise IOError("%s is corrupt!" % (readTokenFile))
 
     def trainFile(self, files):
         """Blindly train on a set of files whether or not it compiles..."""
@@ -55,7 +58,6 @@ class sourceModel(object):
 
     def trainLexemes(self, lexemes):
         """Train on a lexeme sequence."""
-        lexemes = lexemes.scrubbed()
         for l in lexemes:
             if l[4] not in self.listOfUniqueTokens:
                 self.listOfUniqueTokens[l[4]] = l

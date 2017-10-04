@@ -46,6 +46,7 @@ class ValidationFile(object):
         with codecs.open(good_path, 'r', 'UTF-8') as good_fileh:
             self.good_text = good_fileh.read()
         self.good_lexed = self.language(text=self.good_text)
+        assert self.good_lexed.text == self.good_text
         self.good_scrubbed = self.good_lexed.scrubbed()
         if check:
             assert self.check_syntax(self.good_lexed) == []
@@ -66,7 +67,7 @@ class ValidationFile(object):
     
     def mutate(self, new_lexemes, change=None):
         #TODO: check_syntax?
-        self.bad_lexemes = lexemes
+        self.bad_lexemes = new_lexemes
         if change is None:
             self.compute_change()
         else:

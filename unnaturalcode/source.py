@@ -1,4 +1,4 @@
-#    Copyright 2013, 2014 Joshua Charles Campbell
+#    Copyright 2013, 2014, 2017 Joshua Charles Campbell
 #
 #    This file is part of UnnaturalCode.
 #    
@@ -55,7 +55,7 @@ class Position(tuple):
         elif name[0] == 'i':
             return self[2]
         else:
-            raise AttributeError
+            raise AttributeError()
     
     def __str__(self):
         return str(self[0]) + ":" + str(self[1]) + ":" + str(self[2])
@@ -77,7 +77,19 @@ class Position(tuple):
       
     def __le__(self, other):
         return self.__lt__(other) or self.__eq__(other)
-      
+    
+    @classmethod
+    def from2Tuple(cls, tup, lines):
+        l, c = tup
+        # sometimes python reports the same position on two differetn lines
+        # i.e.
+        # (5, 6, 123) == (6, 0, 123)
+        if (l < len(lines)) and (lines[l-1]+c >= lines[l]+0):
+            c -= (lines[l] - lines[l-1])
+            l += 1
+        return cls((l, c, lines[l-1]+c))
+        
+
 class Lexeme(tuple):
     if PARANOID:
         def __init__(self, *args):
@@ -86,9 +98,6 @@ class Lexeme(tuple):
             assert isinstance(self[0], string_types), self[0]
             assert len(self[0]) > 0
             assert isinstance(self[1], string_types)
-            assert (len(self[1]) > 0 
-                    or self[0] == "LMEndPadding"
-                    or self[0] == "LMStartPadding"), repr(self)
             assert isinstance(self[2], Position)
             assert isinstance(self[3], Position)
             assert self[2] <= self[3], "%s > %s" % (self[2], self[3])
@@ -171,7 +180,7 @@ class Lexeme(tuple):
     
     def new_position(self, start, end):
         """Return a copy of this lexeme object but with the positions modified"""
-        return self.__class__(self[0], self[1], Position((start, end, self[4])))
+        return self.__class__((self[0], self[1], start, end, self[4]))
                               
     def scoot(self, from_, to):
         """
@@ -193,11 +202,11 @@ class Lexeme(tuple):
         end = Position((endL, endC, endI))
         return self.new_position(start, end)
     
-    def position_after(self):
-        if self.value[-1] == '\n':
-            return Position((self.end.l+1, 0, self.end.i+1))
-        else:
-            return Position((self.end.l, self.end.c+1, self.end.i+1))
+    #def position_after(self):
+        #if self.value[-1] == '\n':
+            #return Position((self.end.l+1, 0, self.end.i+1))
+        #else:
+            #return Position((self.end.l, self.end.c+1, self.end.i+1))
 
     def __str__(self):
         return self[4]
@@ -237,7 +246,10 @@ class Source(object):
         if self.lexemes is None and self.text is None:
             raise AttributeError(type(lexed).__name__)
         elif self.lexemes is None:
-            self.lexemes = self.lex(self.text)
+            self.compute_line_char_indices()
+            self.lex()
+            if PARANOID:
+                self.check()
         elif self.text is None:
             self.text = self.de_lex()
         assert self.lexemes is not None
@@ -248,6 +260,10 @@ class Source(object):
             lexed=copy(self.lexemes), 
             text=self.text, 
             **self.lexer_args)
+    
+    @property
+    def n_lexemes(self):
+        return len(self.lexemes)
 
     def guess_linesep(self):
         if self.text is not None:
@@ -271,9 +287,9 @@ class Source(object):
                 elif '\r' in l.value:
                     self.linesep = '\r'
                     return
-            for i in range(1, len(lexemes)):
-                cur = lexemes[i]
-                prev = lexemes[i-1]
+            for i in range(1, len(self.lexemes)):
+                cur = self.lexemes[i]
+                prev = self.lexemes[i-1]
                 if cur.start.l > prev.end.l:
                     distance = cur.start.i - prev.end.i
                     distance -= 1 # tokens don't overlap
@@ -285,22 +301,32 @@ class Source(object):
                     elif distance == lines:
                         self.linesep = '\n'
                         return
-        self.linesep = os.linesp # give up
+        self.linesep = os.linesep # give up
         return
-        
+    
     def compute_line_char_indices(self):
         assert self.text is not None
+        assert not hasattr(self, 'line_char_indices')
         if self.linesep is None:
             self.guess_linesep()
-        if '\r' in text and '\n' not in text:
+        if '\r' in self.text and '\n' not in self.text:
             raise NotImplementedError("I don't understand mac format line endings!")
         lpos = 0
         lines = [0]
         while True:
-            lpos = self.text.find(self.linesep, lpos)+len(self.linesep)
-            if lpos <= 0:
+            lpos = self.text.find(self.linesep, lpos)
+            if lpos < 0:
                 break
+            lpos += len(self.linesep)
             lines.append(lpos)
+        assert len(lines) == (self.text.count(self.linesep) + 1), repr((
+            len(lines),
+            lines,
+            self.text
+            ))
+        # add a ghost newline to end of file if none
+        if not self.text.endswith(self.linesep):
+            lines.append(len(self.text)+len(self.linesep))
         self.line_char_indices = lines
     
     def compute_line_lexeme_indices(self):
@@ -349,23 +375,54 @@ class Source(object):
         return self
     
     def check(self, start=0, end=maxint):
-      start = max(start, 0)
-      end = min(end, len(self))
-      #debug(str(start) + "-" + str(end))
-      for i in range(start, end):
-        cur = self.lexemes[i]
-        assert isinstance(cur, lexeme_class)
-        assert self.text[cur.start.i:cur.end.i+1] == cur.value
-        lines = cur.end.l - cur.start.l
-        assert lines == cur.value.count(self.linesep)
-      for i in range(start+1, end):
-        cur = self.lexemes[i]
-        prev = self.lexemes[i-1]
-        assert prev.end < cur.start, repr(cur)
-        assert prev.end.i < cur.start.i
-        lines = cur.start.l - prev.end.l
-        space = self.text[prev.end.i+1:cur.start.i]
-        assert lines == space.count(self.linesep)
+        if self.linesep is None:
+            self.guess_linesep()
+        start = max(start, 0)
+        end = min(end, len(self.lexemes))
+        #debug(str(start) + "-" + str(end))
+        for i in range(start, end):
+            cur = self.lexemes[i]
+            assert isinstance(cur, self.lexeme_class)
+            assert self.text[cur.start.i:cur.end.i] == cur.value, (
+                "%s %s %s %s" % (repr(self.text[cur.start.i:cur.end.i]),
+                            repr(cur.value),
+                            repr(cur.start),
+                            repr(cur.end)))
+            lines = cur.end.l - cur.start.l
+            value = cur.value
+            assert lines == value.count(self.linesep), (
+                " ".join(map(repr, [
+                        cur.start,
+                        cur.end,
+                        lines,
+                        value
+                    ]))
+                )
+        for i in range(start+1, end):
+            cur = self.lexemes[i]
+            prev = self.lexemes[i-1]
+            # reminder: these are python range-style start,end pairs
+            # so the character at end is after the end of the lexeme
+            assert prev.end <= cur.start, repr(cur)
+            assert prev.end.i <= cur.start.i
+            if prev.end.l < cur.start.l:
+                assert prev.end.i < cur.start.i
+            if prev.end.c < cur.start.c:
+                assert prev.end.i < cur.start.i
+            if prev.end.l == cur.start.l and prev.end.c == cur.start.c:
+                assert prev.end.i == cur.start.i
+            lines = cur.start.l - prev.end.l
+            space = self.text[prev.end.i:cur.start.i]
+            if cur.start.i < len(self.text):
+                assert lines == space.count(self.linesep), (
+                    os.linesep.join(map(repr, ["Space between tokens contains wrong"
+                                " number of newlines.",
+                            prev,
+                            cur,
+                            lines,
+                            space
+                        ]))
+                    )
     
     def extend(self, x):
         if x.lexemes is None or len(x.lexemes) == 0: # no-op
@@ -403,11 +460,11 @@ class Source(object):
         else:
             return Position((0,1,0))
     
-    def position_after(self):
-        if len(self.lexemes) > 0:
-            return self.lexemes[-1].position_after()
-        else:
-            return Position((0,1,0))
+    #def position_after(self):
+        #if len(self.lexemes) > 0:
+            #return self.lexemes[-1].position_after()
+        #else:
+            #return Position((0,1,0))
         
 
     def insert(self, i, x):
@@ -420,18 +477,18 @@ class Source(object):
         after = self.lexemes[i:len(lexemes)]
         
         if len(before) > 0:
-            to_x = before[-1].position_after()
+            to_x = before[-1].end
         else:
             to_x = Position((0,1,0))
         first_x = x.start
-        after_x = x.position_after()
+        after_x = x.end
         scooted = [
                 l.scoot(first_x, to_x) for l in x.lexemes
                 ]
         part = before + scooted
         
         if len(part) > 0:
-            to_after = part[-1].position_after()
+            to_after = part[-1].end
         else:
             to_after = Position((0,1,0))
         if len(after) > 0:
@@ -460,8 +517,10 @@ class Source(object):
         assert i < len(self.lexemes)
         assert i >= 0
         removed = self.lexemes[i]
-        from_ = removed.position_after()
+        from_ = removed.end
         to = removed.start
+        self.text = (
+            self.text[:removed.start.i] + self.text[removed.end.i:])
         self.lexemes = (
             self.lexemes[:i]
             + [
@@ -481,7 +540,12 @@ class Source(object):
         of line breaks and cols number of cols in the last line
         """
         extra = chars - (lines * len(self.linesep) + cols)
-        assert extra >= 0
+        assert extra >= 0, repr((
+            lines,
+            cols,
+            chars,
+            extra
+            ))
         return " " * extra + self.linesep * lines + " " * cols
     
     def de_lex(self):
@@ -499,9 +563,9 @@ class Source(object):
                 cols = l.start.col - col
             else:
                 cols = l.start.col
-            chars = l.start.index - idx
+            chars = l.start.index_ - idx
             src.write(self.whitespace(lines, cols, chars))
-            src.write(l.value())
+            src.write(l.value)
             line = l.end.line
             col = l.end.column
             idx = l.end.idx

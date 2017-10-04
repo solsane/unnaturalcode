@@ -32,6 +32,7 @@ from unnaturalcode.sourceModel import sourceModel
 from unnaturalcode.mitlmCorpus import mitlmCorpus
 
 class Mitlm(Tool):
+    name = "mitlm"
     def __init__(
             self,
             train,
@@ -64,7 +65,7 @@ class Mitlm(Tool):
                 valid_fi = self.language_file(good_path=fi,
                                               temp_dir=self.results_dir)
                 INFO("Using %s for training." % (fi))
-                self.sm.trainLexemes(fi.scrubbed)
+                self.sm.trainLexemes(valid_fi.good_scrubbed.lexemes)
                 n_added += 1
                 #if (len(valid_fi.lexed) > self.sm.windowSize) and testing:
                     #self.testFiles.append(valid_fi)
@@ -73,7 +74,8 @@ class Mitlm(Tool):
             except:
                 INFO("Skipping %s !!!" % (fi), exc_info=sys.exc_info())
                 n_skipped += 1
+                raise
         INFO("Using: %i, Skipped: %i" % (n_added, n_skipped))
     
     def query(self, bad_lexemes):
-        fixes = self.sm.fix(lexemes)
+        fixes = self.sm.fix(bad_lexemes)
