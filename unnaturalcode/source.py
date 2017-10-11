@@ -211,6 +211,17 @@ class Lexeme(tuple):
     def __str__(self):
         return self[4]
     
+    def approx_equal(self, other):
+        return self.type == other.type and self.value == other.value
+
+def lexemes_approx_equal(a, b):
+    if len(a) != len(b):
+        return False
+    for i in range(0, len(a)):
+        if not a[i].approx_equal(b[i]):
+            return False
+    return True
+    
 class Source(object):
     """
     Base class for source code, essentially a list of lexemes that can do
@@ -470,7 +481,9 @@ class Source(object):
     def insert(self, i, x):
         assert i <= len(self.lexemes), str(i) + " " + str(len(self.lexemes))
         assert i >= 0
-        if len(x.lexemes) == 0: # no-op
+        if isinstance(x, list):
+            x = self.__class__(x)
+        if len(x) == 0: # no-op
             return self.lexemes
         assert isinstance(x, self.__class__)
         before = self.lexemes[0:i]
@@ -513,22 +526,37 @@ class Source(object):
             self.check()
         return scooted
     
-    def pop(self, i):
+    def delete(self, i, j):
         assert i < len(self.lexemes)
         assert i >= 0
-        removed = self.lexemes[i]
-        from_ = removed.end
-        to = removed.start
+        assert j <= len(self.lexemes)
+        assert i >= 0
+        assert j >= i
+        if i == j:
+            return []
+        removed = self.lexemes[i:j]
+        from_ = removed[-1].end
+        to = removed[0].start
         self.text = (
-            self.text[:removed.start.i] + self.text[removed.end.i:])
+            self.text[:to.i] + self.text[from_.i:])
         self.lexemes = (
             self.lexemes[:i]
             + [
-                l.scoot(from_, to) for l in self.lexemes[i+1:]
+                l.scoot(from_, to) for l in self.lexemes[j:]
                 ]
             )
         if PARANOID:
           self.check()
+        return removed
+    
+    def pop(self, i):
+        removed = self.delete(i, i+1)
+        assert len(removed) == 1
+        return removed[0]
+    
+    def replace(self, i, j, x):
+        removed = self.delete(i, j)
+        self.insert(i, x)
         return removed
 
     def scrubbed(self):

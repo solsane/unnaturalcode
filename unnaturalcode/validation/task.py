@@ -40,6 +40,8 @@ class Task(object):
         self.tools = tools
         # number of results expected for each tool
         self.expected_per_tool = expected_per_tool
+        self.n_results = 0
+        self.total_rrs = {rt.db_name:0 for rt in self.test.result_types}
         
     def tool_finished(self, tool):
         return (self.conn.execute("SELECT COUNT(*) FROM results WHERE "
@@ -73,17 +75,15 @@ class Task(object):
             raise ValueError()
         tool_results = tool.query(self.validation_file.bad_lexed)
         insert = "INSERT INTO results(%s) values (?)" % (self.test.columns)
-        values = [None] * len(self.test.columns)
+        values = ["uc_missing_value_canary"] * len(self.test.columns)
         if len(self.validation_file.change.from_) > 0:
             from_ = self.validation_file.change.from_[0]
             either = self.validation_file.change.from_[0]
-            either_idx = self.validation_file.change.from_start
         else:
             from_ = (None, None, (None, None, None), (None, None, None), None)
         if len(self.validation_file.change.to) > 0:
             to = self.validation_file.change.to[0]
             either = self.validation_file.change.to[0]
-            either_idx = self.validation_file.change.from_end
         else:
             to = (None, None, (None, None, None), (None, None, None), None)
         values[self.test.columns.index("mutation")] = self.mutation_name
@@ -105,21 +105,27 @@ class Task(object):
         values[self.test.columns.index("good_token_value")] = (
             from_[1])
         values[self.test.columns.index("change_token_index")] = (
-            either_idx)
+            self.validation_file.change.token_index)
         values[self.test.columns.index("change_start_line")] = (
-            either[2][0])
+            self.validation_file.change.change_start[0])
         values[self.test.columns.index("change_start_col")] = (
-            either[2][1])
+            self.validation_file.change.change_start[1])
         values[self.test.columns.index("change_end_line")] = (
-            either[3][0])
+            self.validation_file.change.change_end[0])
         values[self.test.columns.index("change_end_col")] = (
-            either[3][1])
+            self.validation_file.change.change_end[1])
+        self.n_results += 1
         for result_type in self.test.result_types:
             result = result_type(tool_results, self.validation_file)
-            result.save(values)
+            values = result.save(values, test)
+            self.total_rrs[result.db_name] += 1.0/result.rank
+            DEBUG("%s MRR: %f" % 
+                (result.db_name, self.total_rrs[result.db_name]/self.n_results))
         for i in range(0,len(values)):
-            assert values[i] is not None, self.test.columns[i]
-            
+            assert values[i] is not "uc_missing_value_canary", self.test.columns[i]
+        self.conn.execute(insert, values)
+        self.conn.commit()
+    
     def run(self):
         for tool in self.tools:
             self.run_tool(tool)

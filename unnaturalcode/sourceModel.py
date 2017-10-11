@@ -15,6 +15,8 @@
 #    You should have received a copy of the GNU Affero General Public License
 #    along with UnnaturalCode.  If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import division
+
 import logging
 logger = logging.getLogger(__name__)
 DEBUG = logger.debug
@@ -30,7 +32,7 @@ import pickle
 
 class sourceModel(object):
 
-    def __init__(self, cm, language, windowSize=20):
+    def __init__(self, cm, language, windowSize=21):
         self.cm = cm
         self.lang = language
         self.windowSize = windowSize
@@ -73,9 +75,9 @@ class sourceModel(object):
         windowlen = self.windowSize
         padding = windowlen
         lstrings = self.stringifyAll(lexemes)
-        qstrings = ((["/*<START>*/"] * windowlen)
+        qstrings = ((["<s>"] * (windowlen-1))
                     + lstrings 
-                    + (["/*<END>*/"] * windowlen)
+                    + (["</s>"] * (windowlen-1))
                    )
         return self.cm.addToCorpus(qstrings)
 
@@ -117,39 +119,37 @@ class sourceModel(object):
         return sorted(unsorted, key=itemgetter(1), reverse=True)
     
     def unwindowedQuery(self, lexemes):
-        lexemes = lexemes.scrubbed().lexemes
         windowlen = self.windowSize
-        padding = windowlen
-        lstrings = self.stringifyAll(lexemes)
+        padding = windowlen-1
         content_len = len(lstrings)
+        assert content_len == len(lexemes)
+        # first and last window are half padding
         content_start = padding
         content_end = padding + content_len
-        qstrings = ((["/*<START>*/"] * windowlen)
-                    + lstrings 
-                    + (["/*<END>*/"] * windowlen)
-                   )
+        useful_windows_start = padding//2
+        useful_windows_end = padding//2 + content_len
         start_pos = lexemes[0].start
         end_pos = lexemes[-1].end
-        qtokens = (([Lexeme(("LMStartPadding", "", start_pos, start_pos, "/*<START>*/"))]
-                      * windowlen)
+        qtokens = (([Lexeme(("<s>", "", start_pos, start_pos, "</s>"))]
+                      * padding)
                     + lexemes
-                    + ([Lexeme(("LMEndPadding", "", end_pos, end_pos, "/*<END>*/"))]
-                       * windowlen)
+                    + ([Lexeme(("</s>", "", end_pos, end_pos, "</s>"))]
+                       * padding)
                    )
         total_len = len(qstrings)
         window_entropies = []
         windows = []
         unwindow_entropies = []
-        for token_i in range(0, total_len):
-            qstart = max(0,token_i+1-windowlen)
-            qend = token_i+1
-            query = qstrings[qstart:qend]
+        for token_i in range(0, total_len-windowlen):
+            qstart = token_i
+            qend = token_i+windowlen
+            query = self.stringifyAll(qtokens[qstart:qend])
             windows.append(qtokens[qstart:qend])
             entropy = self.cm.queryCorpus(query)
             window_entropies.append(entropy)
             unwindow_entropies.append(0)
             for token_j in range(qstart, qend):
-                unwindow_entropies[token_j] += window_entropies[token_i]/(qend-qstart)
+                unwindow_entropies[token_j] += window_entropies[token_i]/(windowlen)
             #if token_i >= content_start and token_i < content_end:
                 #"""
                 #This part is magical. It comes from building an array with a moving
@@ -164,12 +164,14 @@ class sourceModel(object):
                 #)
             #else:
                 #unwindow_entropies.append(0) # don't consider padding tokens
-        windows = [zip(windows, window_entropies)]
-        windows = windows[content_start:content_end]
-        unwindows = [zip(qtokens, unwindow_entropies)]
-        unwindows = unwindows[content_start:content_end]
-        return (sorted(windows, key=itemgetter(1), reverse=True),
-                sorted(unwindows, key=itemgetter(1), reverse=True))
+        assert len(windows) == content_len + (window_len - 1)
+        windows = list(zip(windows, window_entropies))
+        windows = windows[useful_windows_start:useful_windows_end]
+        unwindows = list(zip(qtokens, unwindow_entropies))
+        unwindows = unwindows[padding:(padding+content_len)]
+        return (windows, unwindows)
+        #return (sorted(windows, key=itemgetter(1), reverse=True),
+                #sorted(unwindows, key=itemgetter(1), reverse=True))
       
     def isValid(self, lexemes):
         (filename, line, func, text, exceptionName) = lexemes.check_syntax()
@@ -178,97 +180,85 @@ class sourceModel(object):
         else:
             return False
     
-    def tryDelete(self, lexemes, loci):
-        ta = lexemes[loci]
-        attempt = copy(lexemes)
-        deleted = attempt.pop(loci)
-        window = lexemes[max(0, loci-self.windowSize):
-                           min(len(lexemes),loci+self.windowSize+1)]
-        tb = window.pop(min(self.windowSize, loci))
-        assert ta == tb, "\n".join((repr(ta), repr(tb)))
-        qattempt = (["/*<START>*/"] * max(0, self.windowSize-loci) +
-                    self.stringifyAll(window) +
-                    ["/*<END>*/"] * max(0, (loci-len(lexemes))+self.windowSize+1))
-        assert len(qattempt) == (2*self.windowSize), len(qattempt)
-        entropy = self.cm.queryCorpus(qattempt)
-        assert len(attempt) == len(lexemes)-1
-        if self.isValid(attempt):
-            return (True, attempt, "Delete", loci, deleted, entropy)
+    def tryDelete(self, window, i, real_i):
+        window, originalEntropy = window
+        newEntropy = self.cm.queryCorpus(self.stringifyAll(
+            window[:i] + window[i+1:]))
+        if newEntropy < originalEntropy:
+            return [
+                (
+                    Change('delete',
+                           real_i,
+                           real_i+1,
+                           real_i,
+                           real_i,
+                           [window[i]],
+                           []),
+                    originalEntropy - newEntropy
+                    )
+                ]
         else:
-            return (False, attempt, "Delete", loci, deleted, entropy)
+            return []
     
-    def tryInsert(self, lexemes, loci):
-        window = lexemes[max(0, loci-self.windowSize):
-                           min(len(lexemes),loci+self.windowSize)]
-        results = []
-        for string, token in self.listOfUniqueTokens.items():
-            wattempt = copy(window)
-            wattempt.insert(min(self.windowSize, loci), token)
-            qattempt = (["/*<START>*/"] * max(0, self.windowSize-loci) +
-                        self.stringifyAll(wattempt) +
-                        ["/*<END>*/"] * max(0, (loci-len(lexemes))+self.windowSize))
-            assert len(qattempt) == (2*self.windowSize)+1, len(qattempt)
-            entropy = self.cm.queryCorpus(qattempt)
-            results.append((token, entropy))
-        bestresults = sorted(results, key=itemgetter(1), reverse=False)    
-        attempt = copy(lexemes)
-        attempt.insert(loci,bestresults[0][0])
-        assert len(attempt) == len(lexemes)+1
-        if self.isValid(attempt):
-            return (True, attempt, "Insert", loci, attempt[loci], bestresults[0][1])
+    def tryInsert(self, window, i, real_i, what):
+        window, originalEntropy = window
+        newEntropy = self.cm.queryCorpus(self.stringifyAll(
+            window[:i] + [what] + window[i:]))
+        if newEntropy < originalEntropy:
+            return [
+                (
+                    Change('insert',
+                           real_i,
+                           real_i,
+                           real_i,
+                           real_i+1,
+                           [],
+                           [what]),
+                    originalEntropy - newEntropy
+                    )
+                ]
         else:
-            return (False, attempt, "Insert", loci, attempt[loci], bestresults[0][1])
+            return []
 
-    def tryReplace(self, lexemes, loci):
-        ta = lexemes[loci]
-        window = lexemes[max(0, loci-self.windowSize):
-                           min(len(lexemes),loci+self.windowSize+1)]
-        results = []
-        for string, token in self.listOfUniqueTokens.items():
-            wattempt = copy(window)
-            tb = wattempt.pop(min(self.windowSize, loci))
-            assert ta == tb, "\n".join((repr(ta), repr(tb)))
-            wattempt.insert(self.windowSize, token)
-            qattempt = (["/*<START>*/"] * max(0, self.windowSize-loci) +
-                        self.stringifyAll(wattempt) +
-                        ["/*<END>*/"] * max(0, (loci-len(lexemes))+self.windowSize+1))
-            assert len(qattempt) == (2*self.windowSize)+1, len(qattempt)
-            entropy = self.cm.queryCorpus(qattempt)
-            results.append((token, entropy))
-        bestresults = sorted(results, key=itemgetter(1), reverse=False)    
-        attempt = copy(lexemes)
-        attempt.pop(loci)
-        attempt.insert(loci,bestresults[0][0])
-        assert len(attempt) == len(lexemes)
-        if self.isValid(attempt):
-            return (True, attempt, "Replace", loci, attempt[loci], bestresults[0][1])
+    def tryReplace(self, window, i, real_i, what):
+        window, originalEntropy = window
+        newEntropy = self.cm.queryCorpus(self.stringifyAll(
+            window[:i] + [what] + window[i+1:]))
+        if newEntropy < originalEntropy:
+            return [
+                (
+                    Change('insert',
+                           real_i,
+                           real_i+1,
+                           real_i,
+                           real_i+1,
+                           [window[i]],
+                           [what]),
+                    originalEntropy - newEntropy
+                    )
+                ]
         else:
-            return (False, attempt, "Replace", loci, attempt[loci], bestresults[0][1])
-
-    def fixQueryICSME(self, lexemes, location):
-        found = False
-        for loci in range(0, len(lexemes)):
-            if location.start == lexemes[loci].start:
-                found = True
-                break
-        assert found
-        #TODO: This is wrong and needs to be fixed, but its compatible
-        # with the ICSME paper
-        fixes = [(False, None, "None", loci, None, 1e70)]
-        fix = self.tryDelete(lexemes, loci)
-        if fix[0]: fixes.append(fix)
-        fix = self.tryInsert(lexemes, loci)
-        if fix[0]: fixes.append(fix)
-        fix = self.tryReplace(lexemes, loci)
-        if fix[0]: fixes.append(fix)
-        fixes = sorted(fixes, key=itemgetter(5), reverse=False)
-        return fixes[0]
+            return []
 
     def fix(self, lexemes):
+        lexemes = lexemes.scrubbed().lexemes
+        MAX_POSITIONS = 20
         windows, unwindows = self.unwindowedQuery(lexemes)
-        ERROR(len(windows))
-        ERROR(len(unwindows))
-        
+        keys = list(range(0, len(windows)))
+        keys = sorted(keys, key=lambda i: unwindows[i][1], reverse=True)
+        # keys is now a list of indices into windows/unwindows
+        # sorted with unwindow of highest entropy first
+        centre = ((self.windowSize-1)//2)+1
+        suggestions = []
+        for i in range(0, min(len(keys), MAX_POSITIONS)):
+            windowi = keys[i]
+            assert windows[i][0][centre] == unwindows[i][0]
+            suggestions += self.tryDelete(windows[i], centre, i)
+            for string, token in self.listOfUniqueTokens.items():
+                suggestions += self.tryInsert(windows[i], centre, i, token)
+                suggestions += self.tryReplace(windows[i], centre, i, token)
+        suggestions = sorted(suggestions, key=lambda s: s[1])
+        return [suggestion[0] for suggestion in suggestions]
     
     def release(self):
         self.cm.release()

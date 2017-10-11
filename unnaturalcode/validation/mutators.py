@@ -27,25 +27,41 @@ class Mutators(object):
             
     def insert_token(self, v_file):
         ls = copy(v_file.good_scrubbed)
-        token = ls[randint(0, len(ls)-1)]
-        pos = randint(1, len(ls)-2)
-        inserted = ls.insert(pos, token)
+        token = ls[randint(0, ls.n_lexemes-1)]
+        pos = randint(1, ls.n_lexemes-2)
+        inserted = ls.insert(pos, [token])
         if inserted[0].type == 'ENDMARKER':
           return self.insertRandom(v_file)
-        v_file.mutate(ls, ls[pos-1], inserted[0], ls[pos+1])
+        change = Change(
+            'insert',
+            idx,
+            idx,
+            idx,
+            idx+1,
+            [],
+            [token])
+        v_file.mutate(ls, change)
         return None
             
     def replace_token(self, v_file):
         ls = copy(v_file.good_scrubbed)
-        token = ls[randint(0, len(ls)-1)]
-        pos = randint(1, len(ls)-2)
+        token = ls[randint(0, ls.n_lexemes-1)]
+        pos = randint(1, ls.n_lexemes-2)
         oldToken = ls.pop(pos)
         if oldToken.type == 'ENDMARKER':
           return self.replaceRandom(v_file)
-        inserted = ls.insert(pos, token)
+        inserted = ls.insert(pos, [token])
         if inserted[0].type == 'ENDMARKER':
           return self.replaceRandom(v_file)
-        v_file.mutate(ls, ls[pos-1], inserted[0], ls[pos+1])
+        change = Change(
+            'replace',
+            idx,
+            idx+1,
+            idx,
+            idx+1,
+            [token],
+            [inserted])
+        v_file.mutate(ls, change)
         return None
         
     def dedentRandom(self, v_file):

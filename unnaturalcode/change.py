@@ -24,8 +24,9 @@ ERROR = logger.error
 CRITICAL = logger.critical
 
 from collections import namedtuple
+from copy import copy
 
-from unnaturalcode.source import Lexeme
+from unnaturalcode.source import Lexeme, Source
 
 class Change(namedtuple('_Change', [
     'opcode', 'from_start', 'from_end', 'to_start', 'to_end', 'from_', 'to'])):
@@ -52,6 +53,17 @@ class Change(namedtuple('_Change', [
             assert isinstance(l, Lexeme)
         assert self.from_end - self.from_start == len(self.from_)
         assert self.to_end - self.to_start == len(self.to)
+        if self.opcode == 'delete':
+            assert self.from_end - self.from_start > 0
+            assert self.to_end - self.to_start == 0
+        elif self.opcode == 'insert':
+            assert self.from_end - self.from_start == 0
+            assert self.to_end - self.to_start > 0
+        elif self.opcode == 'replace':
+            assert self.from_end - self.from_start > 0
+            assert self.to_end - self.to_start > 0
+        elif self.opcode == 'equal':
+            assert self.from_ == self.to
         
     def reverse(self):
         opcode = self.opcode
@@ -68,3 +80,71 @@ class Change(namedtuple('_Change', [
                 self.to,
                 self.from_
             ))
+    
+    @property
+    def token_index(self):
+        assert self.from_start == self.to_start
+        assert max(self.from_end - self.from_start, 
+                   self.to_end - self.to_start) == 1
+        return self.from_start
+    
+    @property
+    def change_start(self):
+        if len(self.from_) > 0:
+            return self.from_[0].start
+        elif len(self.to) > 0:
+            return self.to[0].start
+        else:
+            assert False
+    
+    @property
+    def change_end(self):
+        if len(self.from_) > 0:
+            return self.from_[-1].end
+        elif len(self.to) > 0:
+            return self.to[-1].end
+        else:
+            assert False
+    
+    @property
+    def change_token(self):
+        """ 
+        Returns the token for a single-token change, preferring 
+        the new token for 'replace'.
+        """
+        if len(self.to) > 0:
+            assert len(self.to) == 1
+            return self.to[0]
+        elif len(self.from_) > 0:
+            assert len(self.from_) == 1
+            return self.from_[0]
+        else:
+            assert False
+            
+    def do(self, source, strict=False):
+        changed = copy(source)
+        if self.opcode == 'delete':
+            from_ = changed.delete(from_start, from_end)
+            if strict:
+                assert from_ == self.from_
+        elif self.opcode == 'insert':
+            changed.insert(self.from_start, self.to)
+        elif self.opcode == 'replace':
+            from_ = changed.replace(self.from_start, self.from_end, self.to)
+            if strict:
+                assert from_ == self.from_
+        else:
+            pass
+        return changed
+    
+    def approx_equal(self, other):
+        if self.opcode != other.opcode:
+            return False
+        if self.from_start != other.from_start:
+            return False
+        if self.from_end != other.from_end:
+            return False
+        if self.opcode == 'insert' or self.opcode == 'replace':
+            if not lexemes_approx_equal(self.to, other.to):
+                return False
+        return True
