@@ -75,13 +75,12 @@ class ValidationTest(object):
                             for result in self.result_types 
                         for column in result.column_names()]
         
-        self.columns = ",".join(
-            self.fields + self.result_columns)
+        self.columns = self.fields + self.result_columns
 
         self.conn.execute(
             "CREATE TABLE IF NOT EXISTS results ("
                 "id PRIMARY KEY,"
-                + self.columns +
+                + ",".join(self.columns) +
                 ")")
         self.conn.commit()
         self.tasks = []

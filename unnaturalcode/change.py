@@ -23,24 +23,33 @@ WARNING = logger.warning
 ERROR = logger.error
 CRITICAL = logger.critical
 
-import collections.namedtuple
+from collections import namedtuple
 
 from unnaturalcode.source import Lexeme
 
 class Change(namedtuple('_Change', [
     'opcode', 'from_start', 'from_end', 'to_start', 'to_end', 'from_', 'to'])):
-    def __init__(self):
-        assert self.opcode in Set(
+    """
+        opcode - same as difflib
+        from_start - start index of token (token index) of original
+        from_end - one after the end index (python range() sytle)
+        to_start - start index of destination token
+        to_end - end index
+        from_ - list of Lexemes (length = from_end-from_start)
+        to - list of Lexemes (length = to_end-to_start)
+    """
+    def __init__(self, *args):
+        assert self.opcode in set([
             'replace',
             'delete',
             'insert',
-            'equal')
+            'equal'])
         assert self.from_start <= self.from_end
         assert self.to_start <= self.to_end
         for l in self.from_:
-            assert isintance(from_, Lexeme)
+            assert isinstance(l, Lexeme)
         for l in self.to:
-            assert isintance(from_, Lexeme)
+            assert isinstance(l, Lexeme)
         assert self.from_end - self.from_start == len(self.from_)
         assert self.to_end - self.to_start == len(self.to)
         

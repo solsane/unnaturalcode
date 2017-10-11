@@ -74,34 +74,46 @@ class Task(object):
         tool_results = tool.query(self.validation_file.bad_lexed)
         insert = "INSERT INTO results(%s) values (?)" % (self.test.columns)
         values = [None] * len(self.test.columns)
-        values[self.test.columns.indexof("mutation")] = self.mutation_name
-        values[self.test.columns.indexof("good_file")] = (
+        if len(self.validation_file.change.from_) > 0:
+            from_ = self.validation_file.change.from_[0]
+            either = self.validation_file.change.from_[0]
+            either_idx = self.validation_file.change.from_start
+        else:
+            from_ = (None, None, (None, None, None), (None, None, None), None)
+        if len(self.validation_file.change.to) > 0:
+            to = self.validation_file.change.to[0]
+            either = self.validation_file.change.to[0]
+            either_idx = self.validation_file.change.from_end
+        else:
+            to = (None, None, (None, None, None), (None, None, None), None)
+        values[self.test.columns.index("mutation")] = self.mutation_name
+        values[self.test.columns.index("good_file")] = (
             self.validation_file.good_path)
-        values[self.test.columns.indexof("bad_file")] = (
+        values[self.test.columns.index("bad_file")] = (
             self.validation_file.bad_path)
-        values[self.test.columns.indexof("iteration")] = (
-            self.tool_finished())
-        values[self.test.columns.indexof("tool")] = tool
-        values[self.test.columns.indexof("change_operation")] = (
-            self.validation_file.change_operation)
-        values[self.test.columns.indexof("new_token_type")] = (
-            self.validation_file.new_lexeme.type)
-        values[self.test.columns.indexof("new_token_value")] = (
-            self.validation_file.new_lexeme.value)
-        values[self.test.columns.indexof("old_token_type")] = (
-            self.validation_file.old_lexeme.type)
-        values[self.test.columns.indexof("old_token_value")] = (
-            self.validation_file.old_lexeme.value)
-        values[self.test.columns.indexof("change_token_index")] = (
-            self.validation_file.change_index)
-        values[self.test.columns.indexof("change_start_line")] = (
-            self.validation_file.new_lexeme.start.line)
-        values[self.test.columns.indexof("change_start_col")] = (
-            self.validation_file.new_lexeme.start.col)
-        values[self.test.columns.indexof("change_end_line")] = (
-            self.validation_file.new_lexeme.end.line)
-        values[self.test.columns.indexof("change_end_col")] = (
-            self.validation_file.new_lexeme.end.col)
+        values[self.test.columns.index("iteration")] = (
+            self.tool_finished(tool))
+        values[self.test.columns.index("tool")] = tool
+        values[self.test.columns.index("change_operation")] = (
+            self.validation_file.change.opcode)
+        values[self.test.columns.index("bad_token_type")] = (
+            to[0])
+        values[self.test.columns.index("bad_token_value")] = (
+            to[1])
+        values[self.test.columns.index("good_token_type")] = (
+            from_[0])
+        values[self.test.columns.index("good_token_value")] = (
+            from_[1])
+        values[self.test.columns.index("change_token_index")] = (
+            either_idx)
+        values[self.test.columns.index("change_start_line")] = (
+            either[2][0])
+        values[self.test.columns.index("change_start_col")] = (
+            either[2][1])
+        values[self.test.columns.index("change_end_line")] = (
+            either[3][0])
+        values[self.test.columns.index("change_end_col")] = (
+            either[3][1])
         for result_type in self.test.result_types:
             result = result_type(tool_results, self.validation_file)
             result.save(values)
@@ -129,10 +141,13 @@ class MutationTask(Task):
             valid = True
             while valid: # look for an invalid mutation
                 self.mutation(self.validation_file)
+                errors = self.validation_file.bad_lexed.check_syntax()
+                DEBUG(repr(errors))
                 valid = ((
-                        len(self.validation_file.bad_lexed.check_syntax()) == 0
+                        len(errors) == 0
                         ) 
-                    or (not self.test.retry_valid)
+                    and (self.test.retry_valid)
                     )
+            DEBUG("Mutated.")
             super(MutationTask, self).run_tool(tool)
 

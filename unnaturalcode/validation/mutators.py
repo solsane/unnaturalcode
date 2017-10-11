@@ -13,7 +13,7 @@ class Mutators(object):
         token = ls.pop(idx)
         if token.type == 'ENDMARKER':
           return self.delete_token(v_file)
-        change = Change((
+        change = Change(
             'delete',
             idx,
             idx+1,
@@ -21,7 +21,7 @@ class Mutators(object):
             idx,
             [token],
             []
-            ))
+            )
         v_file.mutate(ls, change)
         return None
             

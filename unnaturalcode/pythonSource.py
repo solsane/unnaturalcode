@@ -29,6 +29,8 @@ from copy import copy
 import token
 import tempfile
 import py_compile
+import traceback
+import pdb
 
 try:
   from cStringIO import StringIO
@@ -134,16 +136,20 @@ class pythonSource(Source):
             f.write(self.text)
         try:
             py_compile.compile(temp_path, temp_path+"c", doraise=True)
-        except Exception as e:
-            ei = sys.exc_info();
+        except py_compile.PyCompileError as e:
+            #pdb.set_trace()
             success = False
-            ERROR(e)
-            ERROR(repr(e[1][1]))
             errors.append(CompileError(
-                    filename=e.filename,
-                    line=e.lineno
+                    filename=e.exc_value.filename,
+                    line=e.exc_value.lineno,
+                    column=e.exc_value.offset,
+                    text=e.exc_value.text
                 ))
         os.unlink(temp_path)
-        os.unlink(temp_path+"c")
+        try:
+            os.unlink(temp_path+"c")
+        except FileNotFoundError as e:
+            pass
+        #DEBUG("check_syntax: %i errors" % (len(errors)))
         return errors
 

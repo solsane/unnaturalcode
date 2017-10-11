@@ -24,6 +24,7 @@ WARNING = logger.warning
 ERROR = logger.error
 CRITICAL = logger.critical
 
+import os
 from os import path
 import codecs
 
@@ -67,17 +68,19 @@ class ValidationFile(object):
         self.temp_dir = temp_dir
         
     def compute_change(self):
-        Diff(self.good_lexed, self.bad_lexed)
+        self.change = Diff(self.good_scrubbed, self.bad_lexed)
+        if len(self.change.changes) == 1:
+            self.change = self.change.changes[0]
         
     
     def mutate(self, new_lexemes, change=None):
         #TODO: check_syntax?
-        self.bad_lexemes = new_lexemes
+        self.bad_lexed = self.language(new_lexemes)
         if change is None:
             self.compute_change()
         else:
             if PARANOID:
                 self.compute_change()
-                assert self.change == change
+                assert self.change == change, repr([self.change.changes, change])
             self.change = change
 

@@ -15,9 +15,16 @@
 #    You should have received a copy of the GNU Affero General Public License
 #    along with UnnaturalCode.  If not, see <http://www.gnu.org/licenses/>.
 
+import logging
+logger = logging.getLogger(__name__)
+DEBUG = logger.debug
+INFO = logger.info
+WARNING = logger.warning
+ERROR = logger.error
+CRITICAL = logger.critical
+
 from unnaturalcode.source import Lexeme
 from operator import itemgetter
-from logging import debug, info, warning, error
 import os.path
 import pickle
 
@@ -110,7 +117,7 @@ class sourceModel(object):
         return sorted(unsorted, key=itemgetter(1), reverse=True)
     
     def unwindowedQuery(self, lexemes):
-        lexemes = lexemes.scrubbed()
+        lexemes = lexemes.scrubbed().lexemes
         windowlen = self.windowSize
         padding = windowlen
         lstrings = self.stringifyAll(lexemes)
@@ -123,10 +130,10 @@ class sourceModel(object):
                    )
         start_pos = lexemes[0].start
         end_pos = lexemes[-1].end
-        qtokens = (([ucLexeme(("LMStartPadding", "", start_pos, start_pos, "/*<START>*/"))]
+        qtokens = (([Lexeme(("LMStartPadding", "", start_pos, start_pos, "/*<START>*/"))]
                       * windowlen)
                     + lexemes
-                    + ([ucLexeme(("LMEndPadding", "", end_pos, end_pos, "/*<END>*/"))]
+                    + ([Lexeme(("LMEndPadding", "", end_pos, end_pos, "/*<END>*/"))]
                        * windowlen)
                    )
         total_len = len(qstrings)
@@ -157,9 +164,9 @@ class sourceModel(object):
                 #)
             #else:
                 #unwindow_entropies.append(0) # don't consider padding tokens
-        windows = zip(windows, window_entropies)
+        windows = [zip(windows, window_entropies)]
         windows = windows[content_start:content_end]
-        unwindows = zip(qtokens, unwindow_entropies)
+        unwindows = [zip(qtokens, unwindow_entropies)]
         unwindows = unwindows[content_start:content_end]
         return (sorted(windows, key=itemgetter(1), reverse=True),
                 sorted(unwindows, key=itemgetter(1), reverse=True))

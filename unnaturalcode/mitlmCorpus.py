@@ -91,7 +91,8 @@ class mitlmCorpus(object):
 
     def queryCorpus(self, request):
         self.startMitlm()
-        r = self.mitlm.xentropy((" ".join(request)).encode("UTF-8"))
+        #r = self.mitlm.xentropy((" ".join(request)).encode("UTF-8"))
+        r = self.mitlm.xentropy((" ".join(request)))
         if r >= 1.0e70:
           qString = self.corpify(request)
           warning("Infinity: %s" % qString)

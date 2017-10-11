@@ -78,4 +78,4 @@ class Mitlm(Tool):
         INFO("Using: %i, Skipped: %i" % (n_added, n_skipped))
     
     def query(self, bad_lexemes):
-        fixes = self.sm.fix(bad_lexemes)
+        return self.sm.fix(bad_lexemes)

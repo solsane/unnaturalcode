@@ -26,6 +26,8 @@ CRITICAL = logger.critical
 import difflib
 
 from unnaturalcode.source import Lexeme, Source
+from unnaturalcode.change import Change
+
 
 class Diff(object):
     @staticmethod
@@ -34,9 +36,9 @@ class Diff(object):
             tuple((l.type, l.value)) for l in s.lexemes
             ]
     
-    def opcode_to_change(opcode):
+    def opcode_to_change(self, opcode):
         op, i1, i2, j1, j2 = opcode
-        return Change((
+        return Change(
             op,
             i1,
             i2,
@@ -44,12 +46,11 @@ class Diff(object):
             j2,
             self.from_.lexemes[i1:i2],
             self.to.lexemes[j1:j2]
-            ))
-            
+            )
     
     def __init__(self, from_, to):
-        assert ininstance(from_, Source)
-        assert ininstance(to, Source)
+        assert isinstance(from_, Source)
+        assert isinstance(to, Source)
         self.from_ = from_
         self.to = to
         self.from_lite = self.distill(from_)
@@ -58,4 +59,7 @@ class Diff(object):
                                           autojunk=False)
         self.changes = [
             self.opcode_to_change(opcode) for opcode in self.sm.get_opcodes()
+                if opcode[0] != 'equal'
             ]
+    
+    
