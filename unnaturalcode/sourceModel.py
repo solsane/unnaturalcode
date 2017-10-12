@@ -1,4 +1,4 @@
-#    Copyright 2013, 2014 Joshua Charles Campbell
+#    Copyright 2013, 2014, 2017 Joshua Charles Campbell
 #
 #    This file is part of UnnaturalCode.
 #
@@ -26,6 +26,7 @@ ERROR = logger.error
 CRITICAL = logger.critical
 
 from unnaturalcode.source import Lexeme
+from unnaturalcode.change import Change
 from operator import itemgetter
 import os.path
 import pickle
@@ -121,8 +122,7 @@ class sourceModel(object):
     def unwindowedQuery(self, lexemes):
         windowlen = self.windowSize
         padding = windowlen-1
-        content_len = len(lstrings)
-        assert content_len == len(lexemes)
+        content_len = len(lexemes)
         # first and last window are half padding
         content_start = padding
         content_end = padding + content_len
@@ -130,26 +130,30 @@ class sourceModel(object):
         useful_windows_end = padding//2 + content_len
         start_pos = lexemes[0].start
         end_pos = lexemes[-1].end
-        qtokens = (([Lexeme(("<s>", "", start_pos, start_pos, "</s>"))]
+        qtokens = (([Lexeme(("<s>", "", start_pos, start_pos, "<s>"))]
                       * padding)
                     + lexemes
                     + ([Lexeme(("</s>", "", end_pos, end_pos, "</s>"))]
                        * padding)
                    )
-        total_len = len(qstrings)
+        total_len = len(qtokens)
         window_entropies = []
         windows = []
-        unwindow_entropies = []
-        for token_i in range(0, total_len-windowlen):
+        unwindow_entropies = [0] * (windowlen-1)
+        for token_i in range(0, total_len-windowlen+1):
             qstart = token_i
             qend = token_i+windowlen
             query = self.stringifyAll(qtokens[qstart:qend])
             windows.append(qtokens[qstart:qend])
+            assert len(query) == self.windowSize
             entropy = self.cm.queryCorpus(query)
+            #DEBUG(entropy)
+            #DEBUG(" ".join(query))
             window_entropies.append(entropy)
             unwindow_entropies.append(0)
             for token_j in range(qstart, qend):
-                unwindow_entropies[token_j] += window_entropies[token_i]/(windowlen)
+                additional_entropy = window_entropies[token_i]/(windowlen)
+                unwindow_entropies[token_j] += additional_entropy
             #if token_i >= content_start and token_i < content_end:
                 #"""
                 #This part is magical. It comes from building an array with a moving
@@ -164,11 +168,14 @@ class sourceModel(object):
                 #)
             #else:
                 #unwindow_entropies.append(0) # don't consider padding tokens
-        assert len(windows) == content_len + (window_len - 1)
+        assert len(windows) == content_len + (windowlen - 1)
+        assert len(unwindow_entropies) == total_len
         windows = list(zip(windows, window_entropies))
         windows = windows[useful_windows_start:useful_windows_end]
         unwindows = list(zip(qtokens, unwindow_entropies))
         unwindows = unwindows[padding:(padding+content_len)]
+        assert unwindows[0][0] == lexemes[0]
+        assert windows[0][0][windowlen//2] == lexemes[0], repr(windows[0][0])
         return (windows, unwindows)
         #return (sorted(windows, key=itemgetter(1), reverse=True),
                 #sorted(unwindows, key=itemgetter(1), reverse=True))
@@ -182,8 +189,11 @@ class sourceModel(object):
     
     def tryDelete(self, window, i, real_i):
         window, originalEntropy = window
-        newEntropy = self.cm.queryCorpus(self.stringifyAll(
-            window[:i] + window[i+1:]))
+        query = self.stringifyAll(window[:i] + window[i+1:])
+        #DEBUG(" ".join(query))
+        assert len(query) == self.windowSize-1
+        newEntropy = self.cm.queryCorpus(query)
+        #DEBUG("    Delete %i (%i) %f %f" % (real_i, i, originalEntropy, newEntropy))
         if newEntropy < originalEntropy:
             return [
                 (
@@ -202,9 +212,11 @@ class sourceModel(object):
     
     def tryInsert(self, window, i, real_i, what):
         window, originalEntropy = window
-        newEntropy = self.cm.queryCorpus(self.stringifyAll(
-            window[:i] + [what] + window[i:]))
+        query = self.stringifyAll(window[:i] + [what] + window[i:])
+        assert len(query) == self.windowSize+1
+        newEntropy = self.cm.queryCorpus(query)
         if newEntropy < originalEntropy:
+            DEBUG("    Insert %i (%s) %f %f" % (real_i, what[4], originalEntropy, newEntropy))
             return [
                 (
                     Change('insert',
@@ -222,12 +234,13 @@ class sourceModel(object):
 
     def tryReplace(self, window, i, real_i, what):
         window, originalEntropy = window
-        newEntropy = self.cm.queryCorpus(self.stringifyAll(
-            window[:i] + [what] + window[i+1:]))
+        query = self.stringifyAll(window[:i] + [what] + window[i+1:])
+        assert len(query) == self.windowSize
+        newEntropy = self.cm.queryCorpus(query)
         if newEntropy < originalEntropy:
             return [
                 (
-                    Change('insert',
+                    Change('replace',
                            real_i,
                            real_i+1,
                            real_i,
@@ -242,21 +255,23 @@ class sourceModel(object):
 
     def fix(self, lexemes):
         lexemes = lexemes.scrubbed().lexemes
-        MAX_POSITIONS = 20
+        MAX_POSITIONS = 5
         windows, unwindows = self.unwindowedQuery(lexemes)
         keys = list(range(0, len(windows)))
         keys = sorted(keys, key=lambda i: unwindows[i][1], reverse=True)
         # keys is now a list of indices into windows/unwindows
         # sorted with unwindow of highest entropy first
-        centre = ((self.windowSize-1)//2)+1
+        centre = self.windowSize//2
         suggestions = []
         for i in range(0, min(len(keys), MAX_POSITIONS)):
             windowi = keys[i]
+            DEBUG("Position: %i" % (windowi))
             assert windows[i][0][centre] == unwindows[i][0]
-            suggestions += self.tryDelete(windows[i], centre, i)
+            suggestions += self.tryDelete(windows[windowi], centre, windowi)
             for string, token in self.listOfUniqueTokens.items():
-                suggestions += self.tryInsert(windows[i], centre, i, token)
-                suggestions += self.tryReplace(windows[i], centre, i, token)
+                suggestions += self.tryInsert(windows[windowi], centre, windowi, token)
+                suggestions += self.tryReplace(windows[windowi], centre, windowi, token)
+            DEBUG("Suggestions: %i" % (len(suggestions)))
         suggestions = sorted(suggestions, key=lambda s: s[1])
         return [suggestion[0] for suggestion in suggestions]
     

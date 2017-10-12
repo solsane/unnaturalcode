@@ -52,10 +52,10 @@ class Result(object):
             if self.hit(suggestion):
                 self.rank = rank
                 self.index = suggestion.token_index
-                self.start_line = suggestion.start[0]
-                self.start_col = suggestion.start[1]
-                self.end_line = suggestion.end[0]
-                self.end_col = suggestion.end[1]
+                self.start_line = suggestion.change_start[0]
+                self.start_col = suggestion.change_start[1]
+                self.end_line = suggestion.change_end[0]
+                self.end_col = suggestion.change_end[1]
                 self.token_type = suggestion.change_token.type
                 self.token_value = suggestion.change_token.value
                 self.operation = suggestion.opcode
@@ -84,7 +84,7 @@ class Result(object):
 class LineLocation(Result):
     db_name = "line_location"
     def hit(self, suggestion):
-        if suggestion.start_line == self.vfile.change.change_start[0]:
+        if suggestion.change_start.line == self.vfile.change.change_start[0]:
             return True
         else:
             return False
