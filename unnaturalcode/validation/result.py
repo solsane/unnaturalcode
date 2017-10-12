@@ -70,16 +70,17 @@ class Result(object):
             self.token_value = None
             self.operation = None
     
-    def save(self, test):
-        values[test.columns.index("%s_rank") % (self.db_name)] = self.rank
-        values[test.columns.index("%s_index") % (self.db_name) ] = self.index
-        values[test.columns.index("%s_start_line") % (self.db_name)] = self.start_line
-        values[test.columns.index("%s_start_col") % (self.db_name)] = self.start_col
-        values[test.columns.index("%s_end_line") % (self.db_name)] = self.end_line
-        values[test.columns.index("%s_end_col") % (self.db_name)] = self.end_col
-        values[test.columns.index("%s_token_type") % (self.db_name)] = self.token_type
-        values[test.columns.index("%s_token_value") % (self.db_name)] = self.token_value
-        values[test.columns.index("%s_operation") % (self.db_name)] = self.operation
+    def save(self, values, test):
+        values[test.columns.index("%s_rank" % self.db_name)] = self.rank
+        values[test.columns.index("%s_index" % self.db_name) ] = self.index
+        values[test.columns.index("%s_start_line" % self.db_name)] = self.start_line
+        values[test.columns.index("%s_start_col" % self.db_name)] = self.start_col
+        values[test.columns.index("%s_end_line" % self.db_name)] = self.end_line
+        values[test.columns.index("%s_end_col" % self.db_name)] = self.end_col
+        values[test.columns.index("%s_token_type" % self.db_name)] = self.token_type
+        values[test.columns.index("%s_token_value" % self.db_name)] = self.token_value
+        values[test.columns.index("%s_operation" % self.db_name)] = self.operation
+        return values
 
 class LineLocation(Result):
     db_name = "line_location"

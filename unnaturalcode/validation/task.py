@@ -117,8 +117,9 @@ class Task(object):
         self.n_results += 1
         for result_type in self.test.result_types:
             result = result_type(tool_results, self.validation_file)
-            values = result.save(values, test)
-            self.total_rrs[result.db_name] += 1.0/result.rank
+            values = result.save(values, self.test)
+            if result.rank is not None:
+                self.total_rrs[result.db_name] += 1.0/result.rank
             DEBUG("%s MRR: %f" % 
                 (result.db_name, self.total_rrs[result.db_name]/self.n_results))
         for i in range(0,len(values)):
