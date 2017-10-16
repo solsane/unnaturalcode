@@ -112,7 +112,7 @@ class ValidFix(Result):
     def hit(self, suggestion):
         if suggestion.token_index == self.vfile.change.token_index:
             test = suggestion.do(self.vfile.bad_lexed)
-            return (len(test.check_syntax() == 0))
+            return (len(test.check_syntax()) == 0)
         else:
             return False
     

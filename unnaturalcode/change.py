@@ -124,7 +124,7 @@ class Change(namedtuple('_Change', [
     def do(self, source, strict=False):
         changed = copy(source)
         if self.opcode == 'delete':
-            from_ = changed.delete(from_start, from_end)
+            from_ = changed.delete(self.from_start, self.from_end)
             if strict:
                 assert from_ == self.from_
         elif self.opcode == 'insert':

@@ -483,11 +483,11 @@ class Source(object):
         assert i >= 0
         if isinstance(x, list):
             x = self.__class__(x)
-        if len(x) == 0: # no-op
+        if len(x.lexemes) == 0: # no-op
             return self.lexemes
         assert isinstance(x, self.__class__)
         before = self.lexemes[0:i]
-        after = self.lexemes[i:len(lexemes)]
+        after = self.lexemes[i:len(self.lexemes)]
         
         if len(before) > 0:
             to_x = before[-1].end

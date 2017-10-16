@@ -95,9 +95,8 @@ class mitlmCorpus(object):
         r = self.mitlm.xentropy((" ".join(request)))
         if r >= 1.0e70:
           qString = self.corpify(request)
-          warning("Infinity: %s" % qString)
+          warning("High entropy: %s" % qString)
           warning(str(r))
-          self.checkMitlm()
         return r
 
     def predictCorpus(self, lexemes):
