@@ -10,7 +10,7 @@ from distutils.command.build_ext import build_ext
 from unnaturalcode import __version__
 
 with open('requirements.txt') as f:
-    requires = [l.strip() for l in f.readlines()]
+    requires = [l.strip() for l in f.readlines() if not l.startswith('-e')]
 
 with open('test-requirements.txt') as f:
     tests_require = [l.strip() for l in f.readlines()]
