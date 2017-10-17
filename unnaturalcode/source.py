@@ -489,7 +489,9 @@ class Source(object):
         before = self.lexemes[0:i]
         after = self.lexemes[i:len(self.lexemes)]
         
-        if len(before) > 0:
+        if len(after) > 0:
+            to_x = after[0].start
+        elif len(before) > 0:
             to_x = before[-1].end
         else:
             to_x = Position((0,1,0))
@@ -520,7 +522,7 @@ class Source(object):
         
         self.text = (self.text[:to_x.i] 
                      + x.text[first_x.i:after_x.i]
-                     + self.text[to_x.i+1:])
+                     + self.text[to_x.i:])
         
         if PARANOID:
             self.check()

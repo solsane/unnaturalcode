@@ -74,7 +74,10 @@ class Task(object):
         if self.ran_tool(tool):
             raise ValueError()
         tool_results = tool.query(self.validation_file.bad_lexed)
-        insert = "INSERT INTO results(%s) values (?)" % (self.test.columns)
+        cnames = ",".join(self.test.columns)
+        insert = "INSERT INTO results (%s) values (%s)" % (cnames,
+            ",".join(["?"] * len(self.test.columns))
+            )
         values = ["uc_missing_value_canary"] * len(self.test.columns)
         if len(self.validation_file.change.from_) > 0:
             from_ = self.validation_file.change.from_[0]
@@ -93,7 +96,7 @@ class Task(object):
             self.validation_file.bad_path)
         values[self.test.columns.index("iteration")] = (
             self.tool_finished(tool))
-        values[self.test.columns.index("tool")] = tool
+        values[self.test.columns.index("tool")] = tool.__class__.__name__
         values[self.test.columns.index("change_operation")] = (
             self.validation_file.change.opcode)
         values[self.test.columns.index("bad_token_type")] = (
@@ -124,7 +127,8 @@ class Task(object):
                 (result.db_name, self.total_rrs[result.db_name]/self.n_results))
         for i in range(0,len(values)):
             assert values[i] is not "uc_missing_value_canary", self.test.columns[i]
-        self.conn.execute(insert, values)
+        DEBUG(repr(values))
+        self.conn.execute(insert, tuple(values))
         self.conn.commit()
     
     def run(self):

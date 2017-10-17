@@ -216,7 +216,7 @@ class sourceModel(object):
         assert len(query) == self.windowSize+1
         newEntropy = self.cm.queryCorpus(query)
         if newEntropy < originalEntropy:
-            DEBUG("    Insert %i (%s) %f %f" % (real_i, what[4], originalEntropy, newEntropy))
+            #DEBUG("    Insert %i (%s) %f %f" % (real_i, what[4], originalEntropy, newEntropy))
             return [
                 (
                     Change('insert',
@@ -272,7 +272,7 @@ class sourceModel(object):
                 suggestions += self.tryInsert(windows[windowi], centre, windowi, token)
                 suggestions += self.tryReplace(windows[windowi], centre, windowi, token)
             DEBUG("Suggestions: %i" % (len(suggestions)))
-        suggestions = sorted(suggestions, key=lambda s: s[1])
+        suggestions = sorted(suggestions, key=lambda s: s[1], reverse=True)
         return [suggestion[0] for suggestion in suggestions]
     
     def release(self):

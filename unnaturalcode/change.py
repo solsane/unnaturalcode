@@ -26,7 +26,7 @@ CRITICAL = logger.critical
 from collections import namedtuple
 from copy import copy
 
-from unnaturalcode.source import Lexeme, Source
+from unnaturalcode.source import Lexeme, Source, lexemes_approx_equal
 
 class Change(namedtuple('_Change', [
     'opcode', 'from_start', 'from_end', 'to_start', 'to_end', 'from_', 'to'])):
@@ -71,7 +71,7 @@ class Change(namedtuple('_Change', [
             opcode = 'insert'
         elif self.opcode == 'insert':
             opcode = 'delete'
-        return self.__class__((
+        return self.__class__(
                 opcode,
                 self.to_start,
                 self.to_end,
@@ -79,7 +79,7 @@ class Change(namedtuple('_Change', [
                 self.from_end,
                 self.to,
                 self.from_
-            ))
+            )
     
     @property
     def token_index(self):
@@ -144,6 +144,10 @@ class Change(namedtuple('_Change', [
             return False
         if self.from_end != other.from_end:
             return False
+        #if self.to_start != other.to_start:
+            #return False
+        #if self.to_end != other.to_end:
+            #return False
         if self.opcode == 'insert' or self.opcode == 'replace':
             if not lexemes_approx_equal(self.to, other.to):
                 return False

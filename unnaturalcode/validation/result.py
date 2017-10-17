@@ -51,6 +51,7 @@ class Result(object):
             suggestion = suggestions[i] 
             if self.hit(suggestion):
                 self.rank = rank
+                DEBUG("%s rank %d" % (self.__class__.__name__, rank))
                 self.index = suggestion.token_index
                 self.start_line = suggestion.change_start[0]
                 self.start_col = suggestion.change_start[1]
@@ -59,6 +60,7 @@ class Result(object):
                 self.token_type = suggestion.change_token.type
                 self.token_value = suggestion.change_token.value
                 self.operation = suggestion.opcode
+                break
         if not hasattr(self, 'rank'):
             self.rank = None
             self.index = None
@@ -85,7 +87,7 @@ class Result(object):
 class LineLocation(Result):
     db_name = "line_location"
     def hit(self, suggestion):
-        if suggestion.change_start.line == self.vfile.change.change_start[0]:
+        if suggestion.change_start.line == self.vfile.change.change_start.line:
             return True
         else:
             return False
@@ -94,7 +96,7 @@ class WindowLocation(Result):
     db_name = "window_location"
     def hit(self, suggestion):
         if (suggestion.token_index >= (self.vfile.change.token_index - 10)
-            and suggestion.token_index < (self.vfile.change.token_index - 10)):
+            and suggestion.token_index < (self.vfile.change.token_index + 10)):
             return True
         else:
             return False
@@ -120,7 +122,17 @@ class TrueFix(Result):
     db_name = "true_fix"
     def hit(self, suggestion):
         if suggestion.token_index == self.vfile.change.token_index:
-            return self.vfile.change.reverse().approx_equal(suggestion)
+            r = self.vfile.change.reverse().approx_equal(suggestion)
+            if r:
+                assert suggestion.change_token[1] == self.vfile.change.change_token[1]
+                test = suggestion.do(self.vfile.bad_lexed)
+                if len(test.check_syntax()) != 0:
+                    ERROR(repr([suggestion, self.vfile.change]))
+                    ERROR("GOOD --------------- GOOD")
+                    ERROR("\n" + self.vfile.good_text)
+                    ERROR("FIXED --------------- FIXED")
+                    ERROR("\n" + test.text)
+            return r
         else:
             return False
         
