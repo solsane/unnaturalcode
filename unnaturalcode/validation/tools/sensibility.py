@@ -20,24 +20,29 @@
 
 
 from unnaturalcode.validation.tools import Tool
+from unnaturalcode.change import Change
+from unnaturalcode.source import Lexeme
 
 
 class Sensibility(Tool):
     name = "sensibility"
 
-    def __init__(self, train, keep, fixer=None):
-        from sensibility.fix import LSTMFixerUpper
-        from sensibility.model.lstm import KerasDualLSTMModel
+    def __init__(self, fixer=None, **kwargs):
+        from sensibility import language
 
-        assert keep is True, "Will not delete LSTM models"
-        assert train is False, "Cannot retrain LSTM models"
+        super(Sensibility, self).__init__(**kwargs)
+
+        assert kwargs.get('keep', True) is True, "Will not delete LSTM models"
+        assert kwargs.get('train', False) is False, "Cannot retrain LSTM models"
 
         # XXX: Hardcoded to work with Java. There is a better way, but ¯\_(ツ)_/¯
-        from sensibility import language
         language.set('java')
 
         # Allow for that dank dependency injection.
         if fixer is None:
+            from sensibility.fix import LSTMFixerUpper
+            from sensibility.model.lstm import KerasDualLSTMModel
+
             # Load the models from the results dir.
             model = KerasDualLSTMModel.from_directory(self.results_dir)
             # NOTE: Set k to ⌈MRR ** -1⌉
@@ -49,6 +54,9 @@ class Sensibility(Tool):
         raise NotImplementedError("Train the models seperately")
 
     def query(self, bad_source):
+        from sensibility.source_vector import to_source_vector
+        from sensibility.edit import Insertion, Deletion, Substitution
+
         # Sensibility likes to defer reading the bytestream to the parser;
         # consequently it only takes bytes objects as inputs; so just reencode
         # the string to something sane.
@@ -62,9 +70,6 @@ class Sensibility(Tool):
         # The fixes are returned in Sensibility's format. They must be adapted
         # to Change objects.
         fixes = self.fixer.fix(bad_source_code)
-
-        from sensibility.source_vector import to_source_vector
-        from sensibility.edit import Insertion, Deletion, Substitution
 
         changes = []  # that's just the way it is
         for fix in fixes:
@@ -104,6 +109,7 @@ class Sensibility(Tool):
 def vind_to_lexeme(vocab_id):
     from sensibility import language
     from sensibility.vocabulary import VocabularyError
+
     ltype = language.vocabulary.to_text(vocab_id)
     # For some tokens, there's no source representation
     try:
