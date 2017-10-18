@@ -27,53 +27,41 @@ try:
 except ImportError:
   from queue import Empty
 
-from unnaturalcode.modelValidator import ValidationFile, ModelValidation, ValidationMain
-from unnaturalcode.mitlmCorpus import mitlmCorpus
-from unnaturalcode.mutators import Mutators
-from unnaturalcode.java_source import JavaSource
+from unnaturalcode.validation.test import ValidationTest
+from unnaturalcode.validation.main import ValidationMain
+from unnaturalcode.validation.file import ValidationFile
+
+from unnaturalcode.source.java import JavaSource
 
 
 class JavaValidationFile(ValidationFile):
-    def __init__(self, path, language, tempDir):
-        self.mode = "js"
-        super(JavaValidationFile,self).__init__(path, language, tempDir)
+    language = JavaSource
     
-    def get_error(self):
-        return self.mutatedLexemes.check_syntax()
+    def __init__(self, **kwargs):
+        super(JavaValidationFile,self).__init__(**kwargs)
         
-class JavaValidation(ModelValidation):
-    
-    def __init__(self, 
-                 test=None, 
-                 train=None,
-                 resultsDir=None,
-                 corpus=mitlmCorpus,
-                 keep=False,
-                 *args,
-                 **kwargs):
-       self.languageValidationFile = JavaValidationFile
-       super(JavaValidation,self).__init__(
-         test=test,
-         train=train,
-         language=JavaSource,
-         resultsDir=resultsDir,
-         corpus=mitlmCorpus,
-         keep=keep,
-         *args,
-         **kwargs)
-    def get_error(self, fi):
-        return fi.get_error()
+class JavaValidationTest(ValidationTest):
+    def __init__(self, **kwargs):
+        super(JavaValidationTest,self).__init__(**kwargs)
+        
+    def check_good_file(self, fi):
+        pass
 
 class JavaValidationMain(ValidationMain):
+    validation_file_class = JavaValidationFile
+    validation_test_class = JavaValidationTest
+
     def add_args(self, parser):
         pass
 
     def read_args(self, args):
-        pass
+        logging.getLogger("py4j.java_gateway").setLevel(logging.ERROR)
+        return {}
 
     def __init__(self, *args, **kwargs):
-        self.validation = JavaValidation
         super(JavaValidationMain,self).__init__(*args, **kwargs)
+        
 
 if __name__ == '__main__':
+    
     JavaValidationMain().main()

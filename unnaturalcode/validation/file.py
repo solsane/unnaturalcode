@@ -85,6 +85,6 @@ class ValidationFile(object):
         else:
             if PARANOID:
                 self.compute_change()
-                assert self.change == change, repr([self.change.changes, change])
+                assert self.change == change, repr([self.change, change])
             self.change = change
 

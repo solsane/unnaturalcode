@@ -134,11 +134,13 @@ class TrueFix(Result):
                 if len(errs) != 0:
                     ERROR(str(errs[0]))
                     ERROR(repr([suggestion, self.vfile.change]))
-                    ERROR("GOOD --------------- GOOD")
-                    ERROR("\n" + self.vfile.good_text)
-                    ERROR("FIXED --------------- FIXED")
-                    ERROR("\n" + test.text)
-                    raise RuntimeError("Truefix not valid: is this python?")
+                    ERROR("GOOD --------------- GOOD\n" 
+                        + self.vfile.good_text.splitlines()[
+                            suggestion.change_token[2][0]-1])
+                    ERROR("FIXED --------------- FIXED\n" 
+                        + test.text.splitlines()[
+                            suggestion.change_token[2][0]-1])
+                    #raise RuntimeError("Truefix not valid: is this python?")
             return r
         else:
             return False

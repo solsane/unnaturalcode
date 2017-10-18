@@ -131,7 +131,7 @@ class ValidationTest(object):
                 self.check_good_file(valid_fi)
                 if valid_fi.good_lexed.n_lexemes < 21:
                     raise RuntimeError("File too short!")
-            except:
+            except Exception as e:
                 INFO("Skipping %s !!!" % (fi), exc_info=sys.exc_info())
                 n_skipped += 1
                 continue

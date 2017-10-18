@@ -106,7 +106,7 @@ class Lexeme(tuple):
             assert isinstance(self[4], string_types)
             assert len(self[4]) > 0
             if "\n" in self[1] or "\r" in self[1]:
-                assert self[2][0] < self[3][0]
+                assert self[2][0] < self[3][0], repr(self)
                 if self[1].endswith("\n") or self[1].endswith("\r"):
                     assert self[3][1] == 0
             

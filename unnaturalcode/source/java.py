@@ -25,7 +25,7 @@ WARN = logger.warn
 INFO = logger.info
 DEBUG = logger.debug
 
-from unnaturalcode.unnaturalCode import ucLexeme, ucSource, ucPos
+from unnaturalcode.source import Lexeme, Source, Position
 from unnaturalcode.compile_error import CompileError
 
 import re
@@ -36,18 +36,20 @@ java = Java()
 
 whitespace = re.compile(r'[\s]')
 
-class JavaLexeme(ucLexeme):
-    pass
+class JavaLexeme(Lexeme):
+    @classmethod
+    def from_tuple(cls, t):
+        return cls((t[0], t[1], Position(t[2]), Position(t[3]), t[4]))
 
-class JavaSource(ucSource):
+class JavaSource(Source):
     lexemeClass = JavaLexeme
     
-    def lex(self, code):
-        tokens = java.lex(source)
-        return [JavaLexeme(t) for t in tokens]
+    def lex(self):
+        tokens = java.lex(self.text)
+        self.lexemes = [JavaLexeme.from_tuple(t) for t in tokens]
     
     def check_syntax(self):
-        source = self.deLex()
+        source = self.text
         errors = []
         for i in java.check_syntax(source):
             sev, code, mess, line, col, start, end = i

@@ -82,6 +82,8 @@ class ValidationMain(object):
 
         test_extra_options = self.read_args(args) # let subclasses read their args
         
+        DEBUG(self.validation_file_class)
+        
         output_dir = ((args.output_dir 
                                 or os.getenv("ucResultsDir", None)) 
                             or mkdtemp(prefix='ucValidation-'))
