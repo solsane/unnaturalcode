@@ -37,7 +37,7 @@ from unnaturalcode.validation.result import (
     TrueFix
     )
 
-from unnaturalcode.validation.task import MutationTask
+from unnaturalcode.validation.task import MutationTask, PairTask
 
 class ValidationTest(object):
     fields = [  
@@ -104,17 +104,21 @@ class ValidationTest(object):
             try:
                 after_file_name = fi
                 before_file_name = fi.replace("after", "before")
-                valid_fi = self.language_file(after_file_name,
-                                              self.results_dir,
-                                              before_file_name)
+                valid_fi = self.language_file(good_path=after_file_name,
+                                              temp_dir=self.results_dir,
+                                              bad_path=before_file_name)
                 self.check_good_file(valid_fi)
                 INFO("Using %s for testing." % (fi))
                 n_added += 1
                 task = PairTask(self, valid_fi, tools)
+                assert len(valid_fi.good_lexed.check_syntax()) == 0, (
+                    "File doesn't parse good.")
             except:
                 INFO("Skipping %s !!!" % (fi), exc_info=sys.exc_info())
                 n_skipped += 1
-            self.tasks.append(task)
+            else:
+                task = PairTask(self, valid_fi, tools)
+                self.tasks.append(task)
         INFO("Using: %i, Skipped: %i" % (n_added, n_skipped)) 
     
     def add_mutation_tests(self, test, retry_valid, mutations, n, tools):
@@ -131,6 +135,8 @@ class ValidationTest(object):
                 self.check_good_file(valid_fi)
                 if valid_fi.good_lexed.n_lexemes < 21:
                     raise RuntimeError("File too short!")
+                assert len(valid_fi.good_lexed.check_syntax()) == 0, (
+                    "File doesn't parse good.")
             except Exception as e:
                 INFO("Skipping %s !!!" % (fi), exc_info=sys.exc_info())
                 n_skipped += 1

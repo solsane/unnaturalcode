@@ -91,6 +91,12 @@ class Position(tuple):
             l += 1
         return cls((l, c, lines[l-1]+c))
         
+    def next_column(self):
+        return self.__class__((
+            self[0],
+            self[1]+1,
+            self[2]+1
+            ))
 
 class Lexeme(tuple):
     if PARANOID:
@@ -503,12 +509,15 @@ class Source(object):
         
         if len(after) > 0:
             to_x = after[0].start
+            prefixing = True
             #DEBUG(repr(x.lexemes[0]))
             #DEBUG(repr(after[0]))
         elif len(before) > 0:
-            to_x = before[-1].end
+            to_x = before[-1].end.next_column()
+            prefixing = False
         else:
             to_x = Position((0,1,0))
+            prefixing = True
         first_x = x.start
         after_x = x.end
         scooted = [
@@ -518,6 +527,8 @@ class Source(object):
         
         if len(part) > 0:
             to_after = part[-1].end
+            if prefixing:
+                to_after = to_after.next_column()
         else:
             to_after = Position((0,1,0))
         if len(after) > 0:
@@ -534,8 +545,17 @@ class Source(object):
         self.line_char_indices = None
         self.line_lexeme_indices = None
         
+        if prefixing:
+            extra_before = ""
+            extra_after = " "
+        else:
+            extra_before = " "
+            extra_after = ""
+        
         self.text = (self.text[:to_x.i] 
+                     + extra_before
                      + x.text[first_x.i:after_x.i]
+                     + extra_after
                      + self.text[to_x.i:])
         
         if PARANOID:

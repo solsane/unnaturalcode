@@ -117,7 +117,7 @@ class ValidationMain(object):
         
         if args.pair_file_list:
             test.add_pair_tests(
-                test=args.mutation_file_list,
+                test=args.pair_file_list,
                 tools=tools,
             )
         ERROR(type(test))

@@ -65,6 +65,7 @@ class ValidationFile(object):
             self.bad_lexed = self.language(text=self.bad_text)
             if check:
                 assert len(self.check_syntax(self.bad_lexed)) > 0
+            self.compute_change()
         self.temp_dir = temp_dir
         
     def compute_change(self):
@@ -83,8 +84,4 @@ class ValidationFile(object):
             assert False
             self.compute_change()
         else:
-            if PARANOID:
-                self.compute_change()
-                assert self.change == change, repr([self.change, change])
             self.change = change
-
