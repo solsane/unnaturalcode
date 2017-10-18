@@ -21,6 +21,7 @@
 import unittest
 from unnaturalcode.change import Change
 from unnaturalcode.source import Source
+from unnaturalcode.java_source import JavaSource
 from unnaturalcode.validation.tools.sensibility import Sensibility
 from sensibility import Insertion, Deletion, Substitution, language
 from sensibility.evaluation.distance import determine_edit
@@ -36,10 +37,8 @@ class TestConvertEditToChange(unittest.TestCase):
         edit = determine_edit(before, after)
         assert isinstance(edit, Insertion)
 
-        # TODO: pass in all the arguments this thing wants
-        tool = Sensibility(MockFixer(edit))
-        # TODO: Make a JavaSource from the before code.
-        fixes = tool.fix(Source(...))
+        tool = Sensibility(fixer=MockFixer(edit), **kwargs())
+        fixes = tool.fix(JavaSource(text=before))
 
         assert len(fixes) == 1
         change = fixes[0]
@@ -55,10 +54,8 @@ class TestConvertEditToChange(unittest.TestCase):
         edit = determine_edit(before, after)
         assert isinstance(edit, Deletion)
 
-        # TODO: pass in all the arguments this thing wants
-        tool = Sensibility(MockFixer(edit))
-        # TODO: Make a JavaSource from `before`.
-        fixes = tool.fix(Source(...))
+        tool = Sensibility(fixer=MockFixer(edit), **kwargs())
+        fixes = tool.fix(JavaSource(text=before))
 
         assert len(fixes) == 1
         change = fixes[0]
@@ -74,10 +71,8 @@ class TestConvertEditToChange(unittest.TestCase):
         edit = determine_edit(before, after)
         assert isinstance(edit, Substitution)
 
-        # TODO: pass in all the arguments this thing wants: results_dir, language_file
-        tool = Sensibility(MockFixer(edit))
-        # TODO: Make a JavaSource from `before`.
-        fixes = tool.fix(Source(...))
+        tool = Sensibility(fixer=MockFixer(edit), **kwargs())
+        fixes = tool.fix(JavaSource(text=before))
 
         assert len(fixes) == 1
         change = fixes[0]
@@ -86,6 +81,16 @@ class TestConvertEditToChange(unittest.TestCase):
         assert change.from_end == 2
         assert change.to_start == 1
         assert change.to_end == 2
+
+
+def kwargs():
+    return dict(
+        language_file=None,
+        results_dir="/tmp",
+        train=False,
+        keep=True,
+        type_only=True
+    )
 
 
 class MockFixer(object):
