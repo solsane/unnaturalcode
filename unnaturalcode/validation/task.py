@@ -90,6 +90,7 @@ class Task(object):
             either = self.validation_file.change.to[0]
         else:
             to = (None, None, (None, None, None), (None, None, None), None)
+        DEBUG("Good: %s" % self.validation_file.good_path)
         values[self.test.columns.index("mutation")] = self.mutation_name
         values[self.test.columns.index("good_file")] = (
             self.validation_file.good_path)

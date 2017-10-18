@@ -85,7 +85,8 @@ class Change(namedtuple('_Change', [
     def token_index(self):
         assert self.from_start == self.to_start
         assert max(self.from_end - self.from_start, 
-                   self.to_end - self.to_start) == 1
+                   self.to_end - self.to_start) == 1, (
+                       repr(self))
         return self.from_start
     
     @property
