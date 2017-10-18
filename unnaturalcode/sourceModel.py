@@ -33,7 +33,7 @@ import pickle
 
 class sourceModel(object):
 
-    def __init__(self, cm, language, windowSize=21):
+    def __init__(self, cm, language, windowSize=21, type_only=False):
         self.cm = cm
         self.lang = language
         self.windowSize = windowSize
@@ -46,6 +46,7 @@ class sourceModel(object):
                 self.listOfUniqueTokens = pickle.load(f)
             except:
                 raise IOError("%s is corrupt!" % (readTokenFile))
+        self.type_only = type_only
 
     def trainFile(self, files):
         """Blindly train on a set of files whether or not it compiles..."""
@@ -57,7 +58,17 @@ class sourceModel(object):
 
     def stringifyAll(self, lexemes):
         """Clean up a list of lexemes and convert it to a list of strings"""
-        return [i[4] for i in lexemes]
+        if self.type_only:
+            return [i[0] for i in lexemes]
+        else:
+            return [i[4] for i in lexemes]
+
+    def stringify(self, l):
+        """Convert it to a string"""
+        if self.type_only:
+            return l[0]
+        else:
+            return l[4]
 
     def corpify(self, lexemes):
         """Corpify a string"""
@@ -69,8 +80,8 @@ class sourceModel(object):
     def trainLexemes(self, lexemes):
         """Train on a lexeme sequence."""
         for l in lexemes:
-            if l[4] not in self.listOfUniqueTokens:
-                self.listOfUniqueTokens[l[4]] = l
+            if self.stringify(l) not in self.listOfUniqueTokens:
+                self.listOfUniqueTokens[self.stringify(l)] = l
         with open(self.uTokenFile, "wb") as f:
             pickle.dump(self.listOfUniqueTokens, f)
         windowlen = self.windowSize
@@ -144,6 +155,7 @@ class sourceModel(object):
             qstart = token_i
             qend = token_i+windowlen
             query = self.stringifyAll(qtokens[qstart:qend])
+            #DEBUG(query)
             windows.append(qtokens[qstart:qend])
             assert len(query) == self.windowSize
             entropy = self.cm.queryCorpus(query)
@@ -254,7 +266,7 @@ class sourceModel(object):
             return []
 
     def fix(self, lexemes):
-        lexemes = lexemes.scrubbed().lexemes
+        lexemes = lexemes.lexemes
         MAX_POSITIONS = 5
         windows, unwindows = self.unwindowedQuery(lexemes)
         keys = list(range(0, len(windows)))

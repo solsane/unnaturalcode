@@ -73,6 +73,9 @@ class ValidationMain(object):
         parser.add_argument('-x', '--tool', 
                             help='Tool to use (example: mitlm)', 
                             required=True, action='append')
+        parser.add_argument('-I', '--discard-identifiers', action='store_true',
+                            help='Models are only allowed to see token types'
+                            'such as <IDENTIFIER> rather than myClass.')
         self.add_args(parser) # get more args from subclasses
         
         args=parser.parse_args()
@@ -88,11 +91,13 @@ class ValidationMain(object):
                                 train=args.train_file_list,
                                 keep=args.keep_corpus,
                                 results_dir=output_dir,
+                                type_only=args.discard_identifiers
                             )
         
         test = self.validation_test_class(
             language_file=self.validation_file_class,
             output_dir=output_dir,
+            type_only=args.discard_identifiers,
             **test_extra_options
         )
         
@@ -105,13 +110,13 @@ class ValidationMain(object):
                 retry_valid=args.retry_valid,
                 mutations=mutations,
                 n=args.iterations,
-                tools=tools
+                tools=tools,
                 )
         
         if args.pair_file_list:
             test.add_pair_tests(
                 test=args.mutation_file_list,
-                tools=tools
+                tools=tools,
             )
         ERROR(type(test))
         test.resume()

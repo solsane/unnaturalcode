@@ -123,7 +123,7 @@ class pythonSource(Source):
             else:
                 r.append(ls[i])
         assert len(r)
-        return pythonSource(r)
+        return pythonSource(lexed=r)
     
     def check_syntax(self):
         temp_path = None

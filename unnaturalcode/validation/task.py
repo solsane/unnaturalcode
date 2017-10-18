@@ -37,6 +37,7 @@ class Task(object):
         self.test = test
         self.conn = test.conn
         self.validation_file = validation_file
+        assert validation_file.good_lexed.n_lexemes >= 21, validation_file.good_lexed.n_lexemes
         self.tools = tools
         # number of results expected for each tool
         self.expected_per_tool = expected_per_tool
@@ -119,7 +120,10 @@ class Task(object):
             self.validation_file.change.change_end[1])
         self.n_results += 1
         for result_type in self.test.result_types:
-            result = result_type(tool_results, self.validation_file)
+            result = result_type(tool_results,
+                                 self.validation_file,
+                                 self.test.type_only
+                                 )
             values = result.save(values, self.test)
             if result.rank is not None:
                 self.total_rrs[result.db_name] += 1.0/result.rank

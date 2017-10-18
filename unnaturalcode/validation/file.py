@@ -52,7 +52,7 @@ class ValidationFile(object):
             self.good_text = good_fileh.read()
         self.good_lexed = self.language(text=self.good_text)
         assert self.good_lexed.text == self.good_text
-        self.good_scrubbed = self.good_lexed.scrubbed()
+        #self.good_scrubbed = self.good_lexed.scrubbed()
         if check:
             assert self.check_syntax(self.good_lexed) == []
         self.bad_path = None
@@ -68,15 +68,19 @@ class ValidationFile(object):
         self.temp_dir = temp_dir
         
     def compute_change(self):
-        self.change = Diff(self.good_scrubbed, self.bad_lexed)
+        self.change = Diff(self.good_lexed, self.bad_lexed)
         if len(self.change.changes) == 1:
             self.change = self.change.changes[0]
+            DEBUG(repr(self.change))
+        else:
+            raise RuntimeError("??")
         
     
     def mutate(self, new_lexemes, change=None):
         #TODO: check_syntax?
-        self.bad_lexed = self.language(new_lexemes)
+        self.bad_lexed = new_lexemes
         if change is None:
+            assert False
             self.compute_change()
         else:
             if PARANOID:

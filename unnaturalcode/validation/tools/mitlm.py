@@ -44,7 +44,10 @@ class Mitlm(Tool):
         self.corpus_path = os.path.join(self.results_dir, 'validationCorpus')
         self.corpus=mitlmCorpus(readCorpus=self.corpus_path,
                                 writeCorpus=self.corpus_path)
-        self.sm = sourceModel(cm=self.corpus, language=self.language)
+        self.sm = sourceModel(cm=self.corpus, 
+                              language=self.language,
+                              type_only=self.type_only
+                              )
         if train:
             if keep:
                 pass
@@ -65,7 +68,7 @@ class Mitlm(Tool):
                 valid_fi = self.language_file(good_path=fi,
                                               temp_dir=self.results_dir)
                 INFO("Using %s for training." % (fi))
-                self.sm.trainLexemes(valid_fi.good_scrubbed.lexemes)
+                self.sm.trainLexemes(valid_fi.good_lexed.lexemes)
                 n_added += 1
                 #if (len(valid_fi.lexed) > self.sm.windowSize) and testing:
                     #self.testFiles.append(valid_fi)
@@ -74,7 +77,7 @@ class Mitlm(Tool):
             except:
                 INFO("Skipping %s !!!" % (fi), exc_info=sys.exc_info())
                 n_skipped += 1
-                raise
+                #raise
         INFO("Using: %i, Skipped: %i" % (n_added, n_skipped))
     
     def query(self, bad_lexemes):

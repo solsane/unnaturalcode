@@ -128,6 +128,7 @@ class Change(namedtuple('_Change', [
             if strict:
                 assert from_ == self.from_
         elif self.opcode == 'insert':
+            assert isinstance(self.to, list)
             changed.insert(self.from_start, self.to)
         elif self.opcode == 'replace':
             from_ = changed.replace(self.from_start, self.from_end, self.to)
@@ -137,7 +138,7 @@ class Change(namedtuple('_Change', [
             pass
         return changed
     
-    def approx_equal(self, other):
+    def approx_equal(self, other, type_only):
         if self.opcode != other.opcode:
             return False
         if self.from_start != other.from_start:
@@ -149,6 +150,6 @@ class Change(namedtuple('_Change', [
         #if self.to_end != other.to_end:
             #return False
         if self.opcode == 'insert' or self.opcode == 'replace':
-            if not lexemes_approx_equal(self.to, other.to):
+            if not lexemes_approx_equal(self.to, other.to, type_only):
                 return False
         return True

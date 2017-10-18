@@ -33,6 +33,8 @@ else:
   maxint = sys.maxsize
 
 PARANOID = os.getenv("PARANOID", False)
+if PARANOID is not False:
+    PARANOID = True
 
 class Position(tuple):
     if PARANOID:
@@ -103,6 +105,10 @@ class Lexeme(tuple):
             assert self[2] <= self[3], "%s > %s" % (self[2], self[3])
             assert isinstance(self[4], string_types)
             assert len(self[4]) > 0
+            if "\n" in self[1] or "\r" in self[1]:
+                assert self[2][0] < self[3][0]
+                if self[1].endswith("\n") or self[1].endswith("\r"):
+                    assert self[3][1] == 0
             
     
     def __getattr__(self, name):
@@ -211,14 +217,17 @@ class Lexeme(tuple):
     def __str__(self):
         return self[4]
     
-    def approx_equal(self, other):
-        return self.type == other.type and self.value == other.value
+    def approx_equal(self, other, type_only):
+        if type_only:
+            return self.type == other.type
+        else:
+            return self.type == other.type and self.value == other.value
 
-def lexemes_approx_equal(a, b):
+def lexemes_approx_equal(a, b, type_only):
     if len(a) != len(b):
         return False
     for i in range(0, len(a)):
-        if not a[i].approx_equal(b[i]):
+        if not a[i].approx_equal(b[i], type_only):
             return False
     return True
     
@@ -483,14 +492,19 @@ class Source(object):
         assert i >= 0
         if isinstance(x, list):
             x = self.__class__(x)
+        if PARANOID:
+            self.check()
+            x.check()
         if len(x.lexemes) == 0: # no-op
             return self.lexemes
         assert isinstance(x, self.__class__)
-        before = self.lexemes[0:i]
-        after = self.lexemes[i:len(self.lexemes)]
+        before = self.lexemes[:i]
+        after = self.lexemes[i:]
         
         if len(after) > 0:
             to_x = after[0].start
+            #DEBUG(repr(x.lexemes[0]))
+            #DEBUG(repr(after[0]))
         elif len(before) > 0:
             to_x = before[-1].end
         else:
@@ -508,15 +522,15 @@ class Source(object):
             to_after = Position((0,1,0))
         if len(after) > 0:
             first_after = after[0].start
-        else:
-            first_after = Position((0,1,0))
             self.lexemes = (
                 part
                 + [
                     l.scoot(first_after, to_after) for l in after
                     ]
                 )
-        
+        #DEBUG(repr(self.lexemes[i]))
+        #DEBUG(repr(self.lexemes[i+1]))
+
         self.line_char_indices = None
         self.line_lexeme_indices = None
         

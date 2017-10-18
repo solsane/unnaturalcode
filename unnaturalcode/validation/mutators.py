@@ -33,7 +33,8 @@ class Mutators(object):
 
     def delete_token(self, v_file):
         """Delete a random token from a file."""
-        ls = copy(v_file.good_scrubbed)
+        ls = copy(v_file.good_lexed)
+        assert ls.n_lexemes > 2, repr([ls.n_lexemes, ls.lexemes])
         idx = randint(1, ls.n_lexemes-2)
         after = ls.lexemes[idx+1]
         token = ls.pop(idx)
@@ -53,7 +54,7 @@ class Mutators(object):
         return None
             
     def insert_token(self, v_file):
-        ls = copy(v_file.good_scrubbed)
+        ls = copy(v_file.good_lexed)
         token = ls[randint(0, ls.n_lexemes-1)]
         pos = randint(1, ls.n_lexemes-2)
         inserted = ls.insert(pos, [token])
@@ -71,7 +72,7 @@ class Mutators(object):
         return None
             
     def replace_token(self, v_file):
-        ls = copy(v_file.good_scrubbed)
+        ls = copy(v_file.good_lexed)
         token = ls[randint(0, ls.n_lexemes-1)]
         pos = randint(1, ls.n_lexemes-2)
         oldToken = ls.pop(pos)

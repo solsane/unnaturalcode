@@ -42,10 +42,12 @@ class Result(object):
                 ]
             ]
     
-    def __init__(self, suggestions, vfile):
+    def __init__(self, suggestions, vfile, type_only):
         self.vfile = vfile
         self.suggestions = suggestions
+        self.type_only = type_only
         rank = 2147483648
+        DEBUG(repr(suggestions[0].from_start))
         for i in range(0, len(suggestions)):
             rank = i + 1
             suggestion = suggestions[i] 
@@ -122,9 +124,11 @@ class TrueFix(Result):
     db_name = "true_fix"
     def hit(self, suggestion):
         if suggestion.token_index == self.vfile.change.token_index:
-            r = self.vfile.change.reverse().approx_equal(suggestion)
+            r = self.vfile.change.reverse().approx_equal(suggestion,
+                                                    type_only=self.type_only
+                                                    )
             if r:
-                assert suggestion.change_token[1] == self.vfile.change.change_token[1]
+                assert suggestion.change_token[0] == self.vfile.change.change_token[0]
                 test = suggestion.do(self.vfile.bad_lexed)
                 if len(test.check_syntax()) != 0:
                     ERROR(repr([suggestion, self.vfile.change]))

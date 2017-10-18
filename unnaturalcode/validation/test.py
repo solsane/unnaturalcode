@@ -65,7 +65,7 @@ class ValidationTest(object):
         TrueFix
         ]
     
-    def __init__(self, language_file, output_dir):
+    def __init__(self, language_file, output_dir, type_only):
         self.language_file = language_file
         self.language = language_file.language
         assert output_dir is not None
@@ -76,6 +76,7 @@ class ValidationTest(object):
                         for column in result.column_names()]
         
         self.columns = self.fields + self.result_columns
+        self.type_only = type_only
 
         self.conn.execute(
             "CREATE TABLE IF NOT EXISTS results ("
@@ -122,20 +123,24 @@ class ValidationTest(object):
         n_skipped = 0
         n_added = 0
         for fi in self.file_names:
+            DEBUG(fi)
             try:
                 good_file_name = fi
                 valid_fi = self.language_file(good_path=good_file_name,
                                               temp_dir=self.results_dir)
                 self.check_good_file(valid_fi)
-                INFO("Using %s for testing." % (fi))
-                n_added += 1
+                if valid_fi.good_lexed.n_lexemes < 21:
+                    raise RuntimeError("File too short!")
             except:
                 INFO("Skipping %s !!!" % (fi), exc_info=sys.exc_info())
                 n_skipped += 1
-                break
-            for mutation in mutations:
-                task = MutationTask(self, valid_fi, tools, mutation, n)
-                self.tasks.append(task)
+                continue
+            else:
+                INFO("Using %s for testing." % (fi))
+                n_added += 1
+                for mutation in mutations:
+                    task = MutationTask(self, valid_fi, tools, mutation, n)
+                    self.tasks.append(task)
         INFO("Using: %i, Skipped: %i" % (n_added, n_skipped))
     
     def resume(self):
