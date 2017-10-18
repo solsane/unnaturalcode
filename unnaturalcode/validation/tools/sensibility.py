@@ -32,8 +32,9 @@ class Sensibility(Tool):
 
         super(Sensibility, self).__init__(**kwargs)
 
-        assert kwargs.get('keep', True) is True, "Will not delete LSTM models"
-        assert kwargs.get('train', False) is False, "Cannot retrain LSTM models"
+        assert self.type_only, "Can't do that for you, hun"
+        assert kwargs.get('keep', True), "Will not delete LSTM models"
+        assert not kwargs.get('train', False), "Cannot retrain LSTM models"
 
         # XXX: Hardcoded to work with Java. There is a better way, but ¯\_(ツ)_/¯
         language.set('java')
@@ -63,9 +64,12 @@ class Sensibility(Tool):
         if isinstance(bad_source.text, str):
             bad_source_code = bad_source.text.encode('UTF-8')
 
-        # Ensure that we both have the same number of tokens
-        assert 'EOF' not in bad_source.lexemes[-1].type.upper()
-        assert len(to_source_vector(bad_source_code)) == len(bad_source.lexemes)
+        # Ensure that we both agree the on the token stream.
+        n_sensibility_tokens = len(to_source_vector(bad_source_code))
+        n_unnaturalcode_tokens = len(bad_source.lexemes)
+        assert 'EOF' in bad_source.lexemes[-1].type, "Expected EOF as last token"
+        # Sensibilty's token streams always omit the EOF, but UC keeps it (I think)
+        assert n_sensibility_tokens == n_unnaturalcode_tokens
 
         # The fixes are returned in Sensibility's format. They must be adapted
         # to Change objects.
@@ -94,12 +98,12 @@ class Sensibility(Tool):
                 from_ = [bad_source.lexemes[from_start]]
                 from_start = fix.index
                 from_end = fix.index + 1
-                to_start = from_start
-                to_end = from_end
+                to_start = fix.index
+                to_end = fix.index + 1
                 from_ = [bad_source.lexemes[from_start]]
                 to = [vind_to_lexeme(fix.token)]
             else:
-                raise ValueError("what even is this:" + repr(fix))
+                raise ValueError("what even is this?" + repr(fix))
             changes.append(Change(opcode, from_start, from_end, to_start,
                                   to_end, from_, to))
 
