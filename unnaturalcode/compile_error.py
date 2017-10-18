@@ -36,6 +36,14 @@ class CompileError(object):
         if column is not None:
             assert isinstance(column, integer_types)
         self.column = column
+        
+    def __str__(self):
+        return "%s:%i %s %s" % (
+            self.filename,
+            self.line,
+            self.errorname,
+            self.text
+            )
 
 """
 Compile result should be a list of CompileError objects,

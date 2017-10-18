@@ -47,7 +47,7 @@ class Result(object):
         self.suggestions = suggestions
         self.type_only = type_only
         rank = 2147483648
-        DEBUG(repr(suggestions[0].from_start))
+        #DEBUG(repr(suggestions[0].from_start))
         for i in range(0, len(suggestions)):
             rank = i + 1
             suggestion = suggestions[i] 
@@ -130,12 +130,15 @@ class TrueFix(Result):
             if r:
                 assert suggestion.change_token[0] == self.vfile.change.change_token[0]
                 test = suggestion.do(self.vfile.bad_lexed)
-                if len(test.check_syntax()) != 0:
+                errs = test.check_syntax()
+                if len(errs) != 0:
+                    ERROR(str(errs[0]))
                     ERROR(repr([suggestion, self.vfile.change]))
                     ERROR("GOOD --------------- GOOD")
                     ERROR("\n" + self.vfile.good_text)
                     ERROR("FIXED --------------- FIXED")
                     ERROR("\n" + test.text)
+                    raise RuntimeError("Truefix not valid: is this python?")
             return r
         else:
             return False
