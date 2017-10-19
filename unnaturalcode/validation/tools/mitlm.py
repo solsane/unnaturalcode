@@ -63,13 +63,16 @@ class Mitlm(Tool):
         self.file_names = open(train).read().splitlines()
         n_skipped = 0
         n_added = 0
-        for fi in self.file_names:
+        for i in range(0, len(self.file_names)):
+            fi = self.file_names[i]
             try:
                 valid_fi = self.language_file(good_path=fi,
                                               temp_dir=self.results_dir,
                                               type_only=self.type_only)
                 INFO("Using %s for training." % (fi))
                 self.sm.trainLexemes(valid_fi.good_lexed.lexemes)
+                if i % 100 == 0:
+                    self.sm.saveTraining()
                 n_added += 1
                 #if (len(valid_fi.lexed) > self.sm.windowSize) and testing:
                     #self.testFiles.append(valid_fi)
@@ -80,6 +83,7 @@ class Mitlm(Tool):
                 n_skipped += 1
                 #raise
         INFO("Using: %i, Skipped: %i" % (n_added, n_skipped))
+        self.sm.saveTraining()
     
     def query(self, bad_lexemes):
         return self.sm.fix(bad_lexemes)

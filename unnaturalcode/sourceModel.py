@@ -77,6 +77,11 @@ class sourceModel(object):
 
     def sourceToScrubbed(self, sourceCode):
         return self.lang(sourceCode).scrubbed()
+    
+    def saveTraining(self):
+        with open(self.uTokenFile + ".swp", "wb") as f:
+            f.write(msgpack.packb(self.listOfUniqueTokens))
+        os.rename(self.uTokenFile + ".swp", self.uTokenFile)
 
     def trainLexemes(self, lexemes):
         """Train on a lexeme sequence."""
@@ -86,9 +91,6 @@ class sourceModel(object):
             else:
                 l, count = self.listOfUniqueTokens[self.stringify(l)]
                 self.listOfUniqueTokens[self.stringify(l)] = (l, count+1)
-        with open(self.uTokenFile + ".swp", "wb") as f:
-            f.write(msgpack.packb(self.listOfUniqueTokens))
-        os.rename(self.uTokenFile + ".swp", self.uTokenFile)
         windowlen = self.windowSize
         padding = windowlen
         lstrings = self.stringifyAll(lexemes)
