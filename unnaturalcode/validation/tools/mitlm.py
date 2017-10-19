@@ -54,11 +54,12 @@ class Mitlm(Tool):
             elif os.path.exists(self.corpus_path + ".uniqueTokens"):
                 INFO("Removing old training data...")
                 os.remove(self.corpus_path + ".uniqueTokens")
-            self.train_files(train)
         self.sm = sourceModel(cm=self.corpus, 
                               language=self.language,
                               type_only=self.type_only
                               )
+        if train:
+            self.train_files(train)
     
     def train_files(self, train):
         self.file_names = open(train).read().splitlines()
