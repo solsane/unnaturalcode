@@ -25,7 +25,7 @@ WARNING = logger.warning
 ERROR = logger.error
 CRITICAL = logger.critical
 
-from unnaturalcode.source import Lexeme
+from unnaturalcode.source import Lexeme, Position
 from unnaturalcode.change import Change
 from operator import itemgetter
 import os.path
@@ -44,7 +44,15 @@ class sourceModel(object):
         if os.path.isfile(readTokenFile):
           with open(readTokenFile, "rb") as f:
             try:
-                self.listOfUniqueTokens = msgpack.unpackb(f.read())
+                uts = msgpack.unpackb(f.read(), encoding='utf-8')
+                for (string, ((t, v, s, e, r), count)) in uts.items():
+                    if type_only:
+                        assert string == t
+                    else:
+                        assert string == r
+                    self.listOfUniqueTokens[string] = (
+                        Lexeme((t, v, Position(s), Position(e), r)),
+                        count)
             except:
                 raise IOError("%s is corrupt!" % (readTokenFile))
         self.type_only = type_only
@@ -288,7 +296,7 @@ class sourceModel(object):
             assert windows[i][0][centre] == unwindows[i][0]
             suggestions += self.tryDelete(windows[windowi], centre, windowi)
             for string, (token, count) in self.listOfUniqueTokens.items():
-                if count < 1:
+                if count < 10:
                     continue
                 suggestions += self.tryInsert(windows[windowi], centre, windowi, token)
                 suggestions += self.tryReplace(windows[windowi], centre, windowi, token)
