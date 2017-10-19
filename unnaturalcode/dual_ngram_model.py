@@ -17,6 +17,9 @@
 
 from __future__ import division
 
+TYPE_WEIGHT = 0.999
+VALUE_WEIGHT = 0.00
+
 import logging
 logger = logging.getLogger(__name__)
 DEBUG = logger.debug
@@ -63,6 +66,82 @@ class DualNgramModel(object):
         self.sm_t.train(lexemes)
         self.sm_v.train(lexemes)
         
+    def try_delete(self, window, i, real_i):
+        window, originalEntropy = window
+        query_t = self.sm_t.stringify_all(window[:i] + window[i+1:])
+        assert len(query_t) == self.window_size-1
+        query_v = self.sm_v.stringify_all(window[:i] + window[i+1:])
+        assert len(query_v) == self.window_size-1
+        newEntropy = (
+            TYPE_WEIGHT * self.sm_t.cm.queryCorpus(query_t)
+            + VALUE_WEIGHT * self.sm_v.cm.queryCorpus(query_v))
+        if newEntropy < originalEntropy:
+            return [
+                (
+                    Change('delete',
+                           real_i,
+                           real_i+1,
+                           real_i,
+                           real_i,
+                           [window[i]],
+                           []),
+                    originalEntropy - newEntropy
+                    )
+                ]
+        else:
+            return []
+
+    def try_insert(self, window, i, real_i, what):
+        window, originalEntropy = window
+        query_t = self.sm_t.stringify_all(window[:i] + [what] + window[i:])
+        assert len(query_t) == self.window_size+1
+        query_v = self.sm_v.stringify_all(window[:i] + [what] + window[i:])
+        assert len(query_v) == self.window_size+1
+        newEntropy = (
+            TYPE_WEIGHT * self.sm_t.cm.queryCorpus(query_t)
+            + VALUE_WEIGHT * self.sm_v.cm.queryCorpus(query_v))
+        if newEntropy < originalEntropy:
+            #DEBUG("    Insert %i (%s) %f %f" % (real_i, what[4], originalEntropy, newEntropy))
+            return [
+                (
+                    Change('insert',
+                           real_i,
+                           real_i,
+                           real_i,
+                           real_i+1,
+                           [],
+                           [what]),
+                    originalEntropy - newEntropy
+                    )
+                ]
+        else:
+            return []
+
+    def try_replace(self, window, i, real_i, what):
+        window, originalEntropy = window
+        query_t = self.sm_t.stringify_all(window[:i] + [what] + window[i+1:])
+        assert len(query_t) == self.window_size
+        query_v = self.sm_v.stringify_all(window[:i] + [what] + window[i+1:])
+        assert len(query_v) == self.window_size
+        newEntropy = (
+            TYPE_WEIGHT * self.sm_t.cm.queryCorpus(query_t)
+            + VALUE_WEIGHT * self.sm_v.cm.queryCorpus(query_v))
+        if newEntropy < originalEntropy:
+            return [
+                (
+                    Change('replace',
+                           real_i,
+                           real_i+1,
+                           real_i,
+                           real_i+1,
+                           [window[i]],
+                           [what]),
+                    originalEntropy - newEntropy
+                    )
+                ]
+        else:
+            return []
+
     def fix(self, lexemes):
         lexemes = lexemes.lexemes
         MAX_POSITIONS = 5
@@ -75,7 +154,8 @@ class DualNgramModel(object):
         centre = self.window_size//2
         weighted = []
         for  i in range(0, windows):
-            weight = unwindows_t[i] + unwindows_v[i]
+            weight = (TYPE_WEIGHT * unwindows_t[i][1]
+                      + VALUE_WEIGHT * unwindows_v[i][1])
             weighted.append(weight)
         keys = list(range( 0, windows))
         keys = sorted(keys, key=lambda i: weighted[i], reverse=True)
@@ -84,12 +164,17 @@ class DualNgramModel(object):
             windowi = keys[i]
             DEBUG("Position: %i" % (windowi))
             assert windows_v[i][0][centre] == unwindows_v[i][0]
-            suggestions += self.sm_v.try_delete(windows_v[windowi], centre, windowi)
+            suggestions += self.try_delete(
+                (windows_v[windowi][0], weighted[i]), 
+                centre, 
+                windowi)
             for string, (token, count) in self.sm_v.listOfUniqueTokens.items():
                 if count < 100:
                     continue
-                suggestions += self.sm_v.try_insert(windows_v[windowi], centre, windowi, token)
-                suggestions += self.sm_v.try_replace(windows_v[windowi], centre, windowi, token)
+                suggestions += self.try_insert(
+                    (windows_v[windowi][0], weighted[i]), centre, windowi, token)
+                suggestions += self.try_replace(
+                    (windows_v[windowi][0], weighted[i]), centre, windowi, token)
             DEBUG("Suggestions: %i" % (len(suggestions)))
         suggestions = sorted(suggestions, key=lambda s: s[1], reverse=True)
         return [suggestion[0] for suggestion in suggestions]

@@ -24,8 +24,8 @@ WARNING = logger.warning
 ERROR = logger.error
 CRITICAL = logger.critical
 
-import os
 import sys
+import os
 
 from unnaturalcode.validation.tools import Tool
 from unnaturalcode.ngram_model import NgramModel
