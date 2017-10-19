@@ -28,11 +28,13 @@ import os
 import sys
 
 from unnaturalcode.validation.tools import Tool
-from unnaturalcode.sourceModel import sourceModel
+from unnaturalcode.ngram_model import NgramModel
+from unnaturalcode.dual_ngram_model import DualNgramModel
 from unnaturalcode.mitlmCorpus import mitlmCorpus
 
 class Mitlm(Tool):
     name = "mitlm"
+    source_model = NgramModel
     def __init__(
             self,
             train,
@@ -42,23 +44,17 @@ class Mitlm(Tool):
         super(Mitlm, self).__init__(**kwargs)
         assert os.access(self.results_dir, os.X_OK & os.R_OK & os.W_OK)
         self.corpus_path = os.path.join(self.results_dir, 'validationCorpus')
-        self.corpus=mitlmCorpus(readCorpus=self.corpus_path,
-                                writeCorpus=self.corpus_path)
-        if train:
-            if keep:
-                pass
-            elif os.path.exists(self.corpus_path):
-                os.remove(self.corpus_path)
-            if keep:
-                pass
-            elif os.path.exists(self.corpus_path + ".uniqueTokens"):
-                INFO("Removing old training data...")
-                os.remove(self.corpus_path + ".uniqueTokens")
-        self.sm = sourceModel(cm=self.corpus, 
+        self.corpus=mitlmCorpus
+        self.sm = self.source_model(cm=self.corpus, 
                               language=self.language,
-                              type_only=self.type_only
+                              type_only=self.type_only,
+                              corpus_base=self.corpus_path
                               )
         if train:
+            if keep:
+                pass
+            else:
+                self.sm.delete_corpus()
             self.train_files(train)
     
     def train_files(self, train):
@@ -72,9 +68,9 @@ class Mitlm(Tool):
                                               temp_dir=self.results_dir,
                                               type_only=self.type_only)
                 INFO("Using %s for training." % (fi))
-                self.sm.trainLexemes(valid_fi.good_lexed.lexemes)
+                self.sm.train(valid_fi.good_lexed.lexemes)
                 if i % 100 == 0:
-                    self.sm.saveTraining()
+                    self.sm.save_corpus()
                 n_added += 1
                 #if (len(valid_fi.lexed) > self.sm.windowSize) and testing:
                     #self.testFiles.append(valid_fi)
@@ -85,7 +81,11 @@ class Mitlm(Tool):
                 n_skipped += 1
                 #raise
         INFO("Using: %i, Skipped: %i" % (n_added, n_skipped))
-        self.sm.saveTraining()
+        self.sm.save_corpus()
     
     def query(self, bad_lexemes):
         return self.sm.fix(bad_lexemes)
+    
+class DualMitlm(Mitlm):
+    source_model = DualNgramModel
+    name = "dualmitlm"

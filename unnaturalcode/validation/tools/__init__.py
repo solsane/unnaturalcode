@@ -44,6 +44,10 @@ class Tools(object):
         from unnaturalcode.validation.tools.sensibility import Sensibility
         return Sensibility(**kwargs)
 
+    def dualmitlm(**kwargs):
+        from unnaturalcode.validation.tools.mitlm import DualMitlm
+        return DualMitlm(**kwargs)
+
 
 def tools_by_name(names, **kwargs):
     tools = [getattr(Tools, name.lower()) for name in names]

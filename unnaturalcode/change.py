@@ -83,10 +83,11 @@ class Change(namedtuple('_Change', [
     
     @property
     def token_index(self):
-        assert self.from_start == self.to_start
-        assert max(self.from_end - self.from_start, 
-                   self.to_end - self.to_start) == 1, (
-                       repr(self))
+        if self.from_start != self.to_start:
+            raise ValueError("Change start not equal.")
+        if (max(self.from_end - self.from_start, 
+                   self.to_end - self.to_start) != 1):
+            raise ValueError("Change too long.")
         return self.from_start
     
     @property
@@ -96,7 +97,7 @@ class Change(namedtuple('_Change', [
         elif len(self.to) > 0:
             return self.to[0].start
         else:
-            assert False
+            raise ValueError("Change too short.")
     
     @property
     def change_end(self):
@@ -105,7 +106,7 @@ class Change(namedtuple('_Change', [
         elif len(self.to) > 0:
             return self.to[-1].end
         else:
-            assert False
+            raise ValueError("Change too short.")
     
     @property
     def change_token(self):
@@ -114,27 +115,31 @@ class Change(namedtuple('_Change', [
         the new token for 'replace'.
         """
         if len(self.to) > 0:
-            assert len(self.to) == 1
+            if len(self.to) != 1:
+                raise ValueError("Not a single-token change.")
             return self.to[0]
         elif len(self.from_) > 0:
-            assert len(self.from_) == 1
+            if len(self.from_) != 1:
+                raise ValueError("Not a single-token change.")
             return self.from_[0]
         else:
-            assert False
+            raise ValueError("Not a single-token change.")
             
     def do(self, source, strict=False):
         changed = copy(source)
         if self.opcode == 'delete':
             from_ = changed.delete(self.from_start, self.from_end)
             if strict:
-                assert from_ == self.from_
+                if from_ != self.from_:
+                    raise ValueError("Not applying change to same token.")
         elif self.opcode == 'insert':
             assert isinstance(self.to, list)
             changed.insert(self.from_start, self.to)
         elif self.opcode == 'replace':
             from_ = changed.replace(self.from_start, self.from_end, self.to)
             if strict:
-                assert from_ == self.from_
+                if from_ != self.from_:
+                    raise ValueError("Not applying change to same token.")
         else:
             pass
         return changed
