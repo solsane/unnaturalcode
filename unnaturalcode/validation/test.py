@@ -114,7 +114,8 @@ class ValidationTest(object):
                 task = PairTask(self, valid_fi, tools)
                 assert len(valid_fi.good_lexed.check_syntax()) == 0, (
                     "File doesn't parse good.")
-                _ = valid_fi.change.change_token
+                _ = valid_fi.change.change_token # run assertions
+                _ = valid_fi.change.token_index # run assertions
             except:
                 INFO("Skipping %s !!!" % (fi), exc_info=sys.exc_info())
                 n_skipped += 1
