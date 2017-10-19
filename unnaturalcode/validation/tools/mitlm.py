@@ -44,10 +44,6 @@ class Mitlm(Tool):
         self.corpus_path = os.path.join(self.results_dir, 'validationCorpus')
         self.corpus=mitlmCorpus(readCorpus=self.corpus_path,
                                 writeCorpus=self.corpus_path)
-        self.sm = sourceModel(cm=self.corpus, 
-                              language=self.language,
-                              type_only=self.type_only
-                              )
         if train:
             if keep:
                 pass
@@ -56,8 +52,13 @@ class Mitlm(Tool):
             if keep:
                 pass
             elif os.path.exists(self.corpus_path + ".uniqueTokens"):
+                INFO("Removing old training data...")
                 os.remove(self.corpus_path + ".uniqueTokens")
             self.train_files(train)
+        self.sm = sourceModel(cm=self.corpus, 
+                              language=self.language,
+                              type_only=self.type_only
+                              )
     
     def train_files(self, train):
         self.file_names = open(train).read().splitlines()
