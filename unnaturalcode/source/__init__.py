@@ -335,8 +335,6 @@ class Source(object):
         assert not hasattr(self, 'line_char_indices')
         if self.linesep is None:
             self.guess_linesep()
-        if '\r' in self.text and '\n' not in self.text:
-            raise NotImplementedError("I don't understand mac format line endings!")
         lpos = 0
         lines = [0]
         while True:

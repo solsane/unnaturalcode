@@ -29,7 +29,8 @@ from unnaturalcode.source import Lexeme
 from unnaturalcode.change import Change
 from operator import itemgetter
 import os.path
-import pickle
+import os
+import msgpack
 
 class sourceModel(object):
 
@@ -43,7 +44,7 @@ class sourceModel(object):
         if os.path.isfile(readTokenFile):
           with open(readTokenFile, "rb") as f:
             try:
-                self.listOfUniqueTokens = pickle.load(f)
+                self.listOfUniqueTokens = msgpack.unpackb(f.read())
             except:
                 raise IOError("%s is corrupt!" % (readTokenFile))
         self.type_only = type_only
@@ -81,9 +82,13 @@ class sourceModel(object):
         """Train on a lexeme sequence."""
         for l in lexemes:
             if self.stringify(l) not in self.listOfUniqueTokens:
-                self.listOfUniqueTokens[self.stringify(l)] = l
-        with open(self.uTokenFile, "wb") as f:
-            pickle.dump(self.listOfUniqueTokens, f)
+                self.listOfUniqueTokens[self.stringify(l)] = (l, 1)
+            else:
+                l, count = self.listOfUniqueTokens[self.stringify(l)]
+                self.listOfUniqueTokens[self.stringify(l)] = (l, count+1)
+        with open(self.uTokenFile + ".swp", "wb") as f:
+            f.write(msgpack.packb(self.listOfUniqueTokens))
+        os.rename(self.uTokenFile + ".swp", self.uTokenFile)
         windowlen = self.windowSize
         padding = windowlen
         lstrings = self.stringifyAll(lexemes)
@@ -280,7 +285,9 @@ class sourceModel(object):
             DEBUG("Position: %i" % (windowi))
             assert windows[i][0][centre] == unwindows[i][0]
             suggestions += self.tryDelete(windows[windowi], centre, windowi)
-            for string, token in self.listOfUniqueTokens.items():
+            for string, (token, count) in self.listOfUniqueTokens.items():
+                if count < 1:
+                    continue
                 suggestions += self.tryInsert(windows[windowi], centre, windowi, token)
                 suggestions += self.tryReplace(windows[windowi], centre, windowi, token)
             DEBUG("Suggestions: %i" % (len(suggestions)))
