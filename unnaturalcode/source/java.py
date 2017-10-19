@@ -2,7 +2,7 @@
 #    Copyright 2017 Joshua Charles Campbell, Eddie Antonio Santos
 #
 #    This file is part of UnnaturalCode.
-#    
+#
 #    UnnaturalCode is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as published by
 #    the Free Software Foundation, either version 3 of the License, or
@@ -43,11 +43,12 @@ class JavaLexeme(Lexeme):
 
 class JavaSource(Source):
     lexemeClass = JavaLexeme
-    
+    language = 'Java'
+
     def lex(self):
         tokens = java.lex(self.text)
         self.lexemes = [JavaLexeme.from_tuple(t) for t in tokens]
-    
+
     def check_syntax(self):
         source = self.text
         errors = []
