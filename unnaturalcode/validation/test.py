@@ -106,13 +106,15 @@ class ValidationTest(object):
                 before_file_name = fi.replace("after", "before")
                 valid_fi = self.language_file(good_path=after_file_name,
                                               temp_dir=self.results_dir,
-                                              bad_path=before_file_name)
+                                              bad_path=before_file_name,
+                                              type_only=self.type_only)
                 self.check_good_file(valid_fi)
                 INFO("Using %s for testing." % (fi))
                 n_added += 1
                 task = PairTask(self, valid_fi, tools)
                 assert len(valid_fi.good_lexed.check_syntax()) == 0, (
                     "File doesn't parse good.")
+                _ = valid_fi.change.change_token
             except:
                 INFO("Skipping %s !!!" % (fi), exc_info=sys.exc_info())
                 n_skipped += 1

@@ -26,6 +26,9 @@ CRITICAL = logger.critical
 
 # LOOP ORDER IS:
 # for file (for mutation (for tool
+
+total_rrs = {}
+n_results = 0
         
 class Task(object):
     def __init__(self, 
@@ -37,12 +40,13 @@ class Task(object):
         self.test = test
         self.conn = test.conn
         self.validation_file = validation_file
-        assert validation_file.good_lexed.n_lexemes >= 21, validation_file.good_lexed.n_lexemes
         self.tools = tools
         # number of results expected for each tool
         self.expected_per_tool = expected_per_tool
-        self.n_results = 0
-        self.total_rrs = {rt.db_name:0 for rt in self.test.result_types}
+        n_results = 0
+        for rt in self.test.result_types:
+            if rt.db_name not in total_rrs:
+                total_rrs[rt.db_name] = 0
         
     def tool_finished(self, tool):
         return (self.conn.execute("SELECT COUNT(*) FROM results WHERE "
@@ -72,6 +76,8 @@ class Task(object):
     
     def run_tool(self, tool):
         """Called by self.run()"""
+        global n_results
+        global total_rrs
         if self.ran_tool(tool):
             raise ValueError()
         tool_results = tool.query(self.validation_file.bad_lexed)
@@ -119,7 +125,7 @@ class Task(object):
             self.validation_file.change.change_end[0])
         values[self.test.columns.index("change_end_col")] = (
             self.validation_file.change.change_end[1])
-        self.n_results += 1
+        n_results += 1
         for result_type in self.test.result_types:
             result = result_type(tool_results,
                                  self.validation_file,
@@ -127,9 +133,9 @@ class Task(object):
                                  )
             values = result.save(values, self.test)
             if result.rank is not None:
-                self.total_rrs[result.db_name] += 1.0/result.rank
+                total_rrs[result.db_name] += 1.0/result.rank
             DEBUG("%s MRR: %f" % 
-                (result.db_name, self.total_rrs[result.db_name]/self.n_results))
+                (result.db_name, total_rrs[result.db_name]/n_results))
         for i in range(0,len(values)):
             assert values[i] is not "uc_missing_value_canary", self.test.columns[i]
         DEBUG(repr(values))
@@ -148,6 +154,7 @@ class PairTask(Task):
 class MutationTask(Task):
     def __init__(self, test, validation_file, tools, mutation, n):
         super(MutationTask, self).__init__(test, validation_file, tools, n)
+        assert validation_file.good_lexed.n_lexemes >= 21, validation_file.good_lexed.n_lexemes
         self.mutation_name = mutation.__name__
         self.mutation = mutation
     

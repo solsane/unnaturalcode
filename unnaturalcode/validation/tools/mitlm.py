@@ -66,7 +66,8 @@ class Mitlm(Tool):
         for fi in self.file_names:
             try:
                 valid_fi = self.language_file(good_path=fi,
-                                              temp_dir=self.results_dir)
+                                              temp_dir=self.results_dir,
+                                              type_only=self.type_only)
                 INFO("Using %s for training." % (fi))
                 self.sm.trainLexemes(valid_fi.good_lexed.lexemes)
                 n_added += 1

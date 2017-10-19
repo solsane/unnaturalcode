@@ -44,9 +44,11 @@ class ValidationFile(object):
     
     def __init__(self, 
                  good_path, 
-                 temp_dir, 
+                 temp_dir,
+                 type_only,
                  bad_path=None,
                  check=True):
+        self.type_only = type_only
         self.good_path = good_path
         with codecs.open(good_path, 'r', 'UTF-8') as good_fileh:
             self.good_text = good_fileh.read()
@@ -69,7 +71,7 @@ class ValidationFile(object):
         self.temp_dir = temp_dir
         
     def compute_change(self):
-        self.change = Diff(self.good_lexed, self.bad_lexed)
+        self.change = Diff(self.good_lexed, self.bad_lexed, False)
         if len(self.change.changes) == 1:
             self.change = self.change.changes[0]
             DEBUG(repr(self.change))

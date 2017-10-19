@@ -128,7 +128,8 @@ class TrueFix(Result):
                                                     type_only=self.type_only
                                                     )
             if r:
-                assert suggestion.change_token[0] == self.vfile.change.change_token[0]
+                assert suggestion.change_token[0] == self.vfile.change.reverse().change_token[0], (
+                    repr([suggestion, self.vfile.change]))
                 test = suggestion.do(self.vfile.bad_lexed)
                 errs = test.check_syntax()
                 if len(errs) != 0:
