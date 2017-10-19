@@ -21,7 +21,7 @@
 import unittest
 from unnaturalcode.change import Change
 from unnaturalcode.source import Source
-from unnaturalcode.java_source import JavaSource
+from unnaturalcode.source.java import JavaSource
 from unnaturalcode.validation.tools.sensibility import Sensibility
 from sensibility import Insertion, Deletion, Substitution, language
 from sensibility.evaluation.distance import determine_edit
@@ -38,7 +38,7 @@ class TestConvertEditToChange(unittest.TestCase):
         assert isinstance(edit, Insertion)
 
         tool = Sensibility(fixer=MockFixer(edit), **kwargs())
-        fixes = tool.fix(JavaSource(text=before))
+        fixes = tool.query(make_source(before))
 
         assert len(fixes) == 1
         change = fixes[0]
@@ -55,7 +55,7 @@ class TestConvertEditToChange(unittest.TestCase):
         assert isinstance(edit, Deletion)
 
         tool = Sensibility(fixer=MockFixer(edit), **kwargs())
-        fixes = tool.fix(JavaSource(text=before))
+        fixes = tool.query(make_source(before))
 
         assert len(fixes) == 1
         change = fixes[0]
@@ -72,7 +72,7 @@ class TestConvertEditToChange(unittest.TestCase):
         assert isinstance(edit, Substitution)
 
         tool = Sensibility(fixer=MockFixer(edit), **kwargs())
-        fixes = tool.fix(JavaSource(text=before))
+        fixes = tool.query(make_source(before))
 
         assert len(fixes) == 1
         change = fixes[0]
@@ -85,12 +85,16 @@ class TestConvertEditToChange(unittest.TestCase):
 
 def kwargs():
     return dict(
-        language_file=None,
+        language_file=JavaSource,
         results_dir="/tmp",
         train=False,
         keep=True,
         type_only=True
     )
+
+
+def make_source(source):
+    return JavaSource(text=source.decode('UTF-8'))
 
 
 class MockFixer(object):

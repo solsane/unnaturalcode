@@ -36,8 +36,7 @@ class Sensibility(Tool):
         assert kwargs.get('keep', True), "Will not delete LSTM models"
         assert not kwargs.get('train', False), "Cannot retrain LSTM models"
 
-        # XXX: Hardcoded to work with Java. There is a better way, but ¯\_(ツ)_/¯
-        language.set('java')
+        language.set(self.language)
 
         # Allow for that dank dependency injection.
         if fixer is None:
@@ -69,7 +68,7 @@ class Sensibility(Tool):
         n_unnaturalcode_tokens = len(bad_source.lexemes)
         assert 'EOF' in bad_source.lexemes[-1].type, "Expected EOF as last token"
         # Sensibilty's token streams always omit the EOF, but UC keeps it (I think)
-        assert n_sensibility_tokens == n_unnaturalcode_tokens
+        assert n_sensibility_tokens + 1 == n_unnaturalcode_tokens
 
         # The fixes are returned in Sensibility's format. They must be adapted
         # to Change objects.
@@ -91,16 +90,15 @@ class Sensibility(Tool):
                 from_end = fix.index + 1
                 to_start = fix.index
                 to_end = fix.index
-                from_ = [bad_source.lexemes[from_start]]
+                from_ = [bad_source.lexemes[fix.index]]
                 to = []
             elif isinstance(fix, Substitution):
                 opcode = 'replace'
-                from_ = [bad_source.lexemes[from_start]]
                 from_start = fix.index
                 from_end = fix.index + 1
                 to_start = fix.index
                 to_end = fix.index + 1
-                from_ = [bad_source.lexemes[from_start]]
+                from_ = [bad_source.lexemes[fix.index]]
                 to = [vind_to_lexeme(fix.token)]
             else:
                 raise ValueError("what even is this?" + repr(fix))
