@@ -13,6 +13,31 @@ the [UnnaturalCode paper](http://webdocs.cs.ualberta.ca/~joshua2/syntax.pdf) (pr
 UnnaturalCode should be considered proof-of-concept quality software. The
 primary author of UnnaturalCode, Joshua Charles Campbell can be reached at <joshua2@ualberta.ca>.
 
+# Dependencies
+
+ * GNU `autoconf`
+ * GNU `libtool`
+ * [SWIG]
+ * `gfortran` (see below for further macOS instructions)
+ * [ZeroMQ] (with development headers)
+
+Ubuntu/Debian install:
+
+```sh
+sudo apt install build-essential autoconf libtool gfortran swig libzmq-dev
+```
+
+macOS install (with [Homebrew]):
+
+```sh
+brew install autoconf gcc libtool swig zmq
+```
+
+[Homebrew]: https://brew.sh
+[SWIG]: http://www.swig.org/
+[ZeroMQ]: http://zeromq.org/
+
+
 # Install
 
 Clone this repository with the recursive option:
@@ -36,9 +61,13 @@ This will also clone [MITLM].
 >
 >     export LIBRARY_PATH="$(dirname $(brew list gcc | grep libgfortran.a | tail -1)):$LIBRARY_PATH"
 
-Create a virtualenv (optional), then:
+
+Create a new `virtualenv` (optional), then:
 
     pip install -e .
+
+
+## Testing Compiler Error Messages 
 
 Must set the PATH for the following compilers:
 
