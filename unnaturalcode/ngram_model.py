@@ -67,6 +67,7 @@ class NgramModel(object):
             os.remove(self.corpus_base)
         if os.path.isfile(self.uTokenFile):
             os.remove(self.uTokenFile)
+        self.listOfUniqueTokens = {}
 
     def stringify_all(self, lexemes):
         """Clean up a list of lexemes and convert it to a list of strings"""
@@ -103,6 +104,9 @@ class NgramModel(object):
                     + (["</s>"] * (windowlen-1))
                    )
         return self.cm.addToCorpus(qstrings)
+    
+    def n_unique_tokens(self):
+        return len(self.listOfUniqueTokens)
 
     def query(self, lexemes):
         return self.cm.queryCorpus(self.stringify_all(lexemes))

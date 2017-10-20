@@ -83,7 +83,7 @@ class Mitlm(Tool):
                 #raise
         INFO("Using: %i, Skipped: %i" % (n_added, n_skipped))
         unk = Lexeme(("<unk>", "<unk>", Position((1, 0)), Position((1, 0)), "<unk>"))
-        self.sm.train([unk] * 21)
+        self.sm.train([unk] * self.sm.n_unique_tokens())
         self.sm.save_corpus()
     
     def query(self, bad_lexemes):

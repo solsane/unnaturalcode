@@ -225,9 +225,10 @@ class Lexeme(tuple):
     
     def approx_equal(self, other, type_only):
         if type_only:
-            return self.type == other.type
+            return self.ltype == other.ltype
         else:
-            return self.type == other.type and self.value == other.value
+            #DEBUG("Checking the values...")
+            return (self.ltype == other.ltype) and (self.val == other.val)
 
 def lexemes_approx_equal(a, b, type_only):
     if len(a) != len(b):

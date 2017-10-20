@@ -17,8 +17,8 @@
 
 from __future__ import division
 
-TYPE_WEIGHT = 1.0
-VALUE_WEIGHT = 0.00001
+TYPE_WEIGHT = 0.9
+VALUE_WEIGHT = 0.1
 
 import logging
 logger = logging.getLogger(__name__)
@@ -65,6 +65,9 @@ class DualNgramModel(object):
     def train(self, lexemes):
         self.sm_t.train(lexemes)
         self.sm_v.train(lexemes)
+        
+    def n_unique_tokens(self):
+        return self.sm_v.n_unique_tokens()
         
     def try_delete(self, window, i, real_i):
         window_t, window_v, originalEntropy = window
@@ -145,7 +148,7 @@ class DualNgramModel(object):
 
     def fix(self, lexemes):
         lexemes = lexemes.lexemes
-        MAX_POSITIONS = 5
+        MAX_POSITIONS = 10
         windows_t, unwindows_t = self.sm_t.unwindowed_query(lexemes)
         windows_v, unwindows_v = self.sm_v.unwindowed_query(lexemes)
         windows = len(windows_t)
@@ -183,6 +186,6 @@ class DualNgramModel(object):
                     (windows_t[windowi][0], windows_v[windowi][0], weighted[windowi]),
                     centre, windowi, 
                     token)
-            DEBUG("Suggestions: %i" % (len(suggestions)))
+            #DEBUG("Suggestions: %i" % (len(suggestions)))
         suggestions = sorted(suggestions, key=lambda s: s[1], reverse=True)
         return [suggestion[0] for suggestion in suggestions]
