@@ -64,7 +64,7 @@ class ValidationMain(object):
                             help='Location to store output files', default='.')
         parser.add_argument('-m', '--mutation', 
                             help='Mutation to use', 
-                            required=True, action='append')
+                            action='append')
         parser.add_argument('-r', '--retry-valid', action='store_true', 
                             help='Retry until a syntactically incorrect'
                             ' mutation is found')

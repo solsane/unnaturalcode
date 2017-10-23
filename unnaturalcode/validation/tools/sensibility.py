@@ -36,7 +36,8 @@ class Sensibility(Tool):
         assert kwargs.get('keep', True), "Will not delete LSTM models"
         assert not kwargs.get('train', False), "Cannot retrain LSTM models"
 
-        language.set(self.language)
+        # XXX: hardcodded!
+        language.set('java')
 
         # Allow for that dank dependency injection.
         if fixer is None:
