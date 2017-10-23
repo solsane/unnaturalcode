@@ -574,8 +574,12 @@ class Source(object):
         removed = self.lexemes[i:j]
         from_ = removed[-1].end
         to = removed[0].start
+        if from_.i < len(self.text):
+            after_text = self.text[from_.i:]
+        else:
+            after_text = ""
         self.text = (
-            self.text[:to.i] + self.text[from_.i:])
+            self.text[:to.i] + after_text)
         self.lexemes = (
             self.lexemes[:i]
             + [
