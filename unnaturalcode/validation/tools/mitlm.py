@@ -63,6 +63,8 @@ class Mitlm(Tool):
         n_skipped = 0
         n_added = 0
         for i in range(0, len(self.file_names)):
+            if n_added >= self.N:
+                break
             fi = self.file_names[i]
             try:
                 valid_fi = self.language_file(good_path=fi,
@@ -82,7 +84,8 @@ class Mitlm(Tool):
                 n_skipped += 1
                 #raise
         INFO("Using: %i, Skipped: %i" % (n_added, n_skipped))
-        unk = Lexeme(("<unk>", "<unk>", Position((1, 0)), Position((1, 0)), "<unk>"))
+        unk = Lexeme(("<unk>", "", Position((1, 0, 0)), 
+                      Position((1, 0, 0)), "<unk>"))
         self.sm.train([unk] * self.sm.n_unique_tokens())
         self.sm.save_corpus()
     

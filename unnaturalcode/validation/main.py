@@ -58,6 +58,8 @@ class ValidationMain(object):
                             help="Don't reset the corpus")
         parser.add_argument('-n', '--iterations', type=int, 
                             help='Number of times to iterate', default=50)
+        parser.add_argument('-N', '--n-training-files', type=int, 
+                            help='Number of training files to use', default=1e64)
         parser.add_argument('-o', '--output-dir', 
                             help='Location to store output files', default='.')
         parser.add_argument('-m', '--mutation', 
@@ -93,7 +95,8 @@ class ValidationMain(object):
                                 train=args.train_file_list,
                                 keep=args.keep_corpus,
                                 results_dir=output_dir,
-                                type_only=args.discard_identifiers
+                                type_only=args.discard_identifiers,
+                                N=args.n_training_files,
                             )
         
         test = self.validation_test_class(

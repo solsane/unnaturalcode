@@ -20,14 +20,16 @@ class Tool(object):
     def __init__(self,
                  language_file,
                  results_dir,
-                 train=None, # ignored 
-                 keep=None, # ignored
+                 N,
+                 train=None,
+                 keep=None,
                  type_only=False,
                  ):
         self.language_file=language_file
         self.language=language_file.language
         self.results_dir = results_dir
         self.type_only = type_only
+        self.N=N
     
     def train_files(self, train):
         pass

@@ -76,7 +76,7 @@ class ValidationFile(object):
             self.change = self.change.changes[0]
             DEBUG(repr(self.change))
         else:
-            raise RuntimeError("??")
+            raise RuntimeError("More than one change in diff.")
         
     
     def mutate(self, new_lexemes, change=None):
