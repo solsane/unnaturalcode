@@ -112,7 +112,6 @@ class ValidationTest(object):
                                               type_only=self.type_only)
                 self.check_good_file(valid_fi)
                 INFO("Using %s for testing." % (fi))
-                n_added += 1
                 task = PairTask(self, valid_fi, tools)
                 assert len(valid_fi.good_lexed.check_syntax()) == 0, (
                     "File doesn't parse good.")
@@ -122,6 +121,7 @@ class ValidationTest(object):
                 INFO("Skipping %s !!!" % (fi), exc_info=sys.exc_info())
                 n_skipped += 1
             else:
+                n_added += 1
                 task = PairTask(self, valid_fi, tools)
                 self.tasks.append(task)
         INFO("Using: %i, Skipped: %i" % (n_added, n_skipped)) 
