@@ -18,7 +18,7 @@ primary author of UnnaturalCode, Joshua Charles Campbell can be reached at <josh
  * GNU `autoconf`
  * GNU `libtool`
  * [SWIG]
- * `gfortran` (see below for further macOS instructions)
+ * `gfortran` (see below for further instructions)
  * [ZeroMQ] (with development headers)
 
 Ubuntu/Debian install:
@@ -52,14 +52,25 @@ This will also clone [MITLM].
 
 [MITLM]: https://github.com/orezpraw/MIT-Language-Modeling-Toolkit/tree/267325017f60dee86caacd5b207eacdc50a3fc32
 
-> **macOS**: MITLM requires gfortran, which must be installed before
-> running `pip install`.
+> MITLM requires gfortran, which must be installed before running `pip install`.
+>
+> macOS:
 >
 >     brew install gcc
 >
+> Ubuntu:
+>
+>     sudo apt install gfortran
+>
 > Then, prior to the pip install, set the `LIBRARY_PATH` as appropriate:
 >
->     export LIBRARY_PATH="$(dirname $(brew list gcc | grep libgfortran.a | tail -1)):$LIBRARY_PATH"
+> macOS:
+>
+>     export LIBRARY_PATH="$(dirname $(brew list gcc | grep libgfortran.a | tail -1))${LIBRARY_PATH:+:$LIBRARY_PATH}"
+>
+> Ubuntu:
+>
+>     export LIBRARY_PATH="$(dirname $(locate libgfortran.so | head -1))${LIBRARY_PATH:+:$LIBRARY_PATH}"
 
 
 Create a new `virtualenv` (optional), then:
