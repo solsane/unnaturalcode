@@ -119,6 +119,7 @@ def vind_to_lexeme(vocab_id):
         value = language.vocabulary.to_source_text(vocab_id)
     except VocabularyError:
         value = None
-    # A dummy position; this is not really used.
-    dummy = (1, 0, None)
-    return Lexeme.build(ltype, value, dummy, dummy)
+    # Dummy positions; it moves the tokens to the insertion positions.
+    start = (1, 0, 0)
+    end = (1, len(value), len(value))
+    return Lexeme.build(ltype, value, start, end)
