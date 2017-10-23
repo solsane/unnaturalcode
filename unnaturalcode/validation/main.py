@@ -69,9 +69,12 @@ class ValidationMain(object):
                             help='Retry until a syntactically incorrect'
                             ' mutation is found')
         parser.add_argument('-p', '--pair-file-list', nargs='?',
-                            help='File containing comma-seperated pairs of'
-                                ' bad, good files to'
-                                ' test')
+                            help='File containing list of files in the format'
+                                ' after.java which have a matching before.java')
+        parser.add_argument('-P', '--pair-file-limit', type=int,
+                            help='Limit the number of pair files to '
+                            'this number of good files.',
+                            default=1e64)
         parser.add_argument('-x', '--tool', 
                             help='Tool to use (example: mitlm)', 
                             required=True, action='append')
@@ -121,6 +124,7 @@ class ValidationMain(object):
         if args.pair_file_list:
             test.add_pair_tests(
                 test=args.pair_file_list,
+                limit=args.pair_file_limit,
                 tools=tools,
             )
         ERROR(type(test))
