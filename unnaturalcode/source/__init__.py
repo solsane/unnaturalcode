@@ -445,6 +445,8 @@ class Source(object):
                             prev,
                             cur,
                             lines,
+                            space.count(self.linesep),
+                            self.linesep,
                             space
                         ]))
                     )

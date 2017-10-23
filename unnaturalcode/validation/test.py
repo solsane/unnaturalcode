@@ -96,11 +96,13 @@ class ValidationTest(object):
         """
         pass
         
-    def add_pair_tests(self, test, tools):
+    def add_pair_tests(self, test, limit, tools):
         self.file_names = open(test).read().splitlines()
         n_skipped = 0
         n_added = 0
         for fi in self.file_names:
+            if n_added >= limit:
+                break
             try:
                 after_file_name = fi
                 before_file_name = fi.replace("after", "before")
