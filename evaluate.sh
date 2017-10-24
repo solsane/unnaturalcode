@@ -14,5 +14,5 @@ THEANO_FLAGS="${DEVICE:-}"\
 	--discard-identifiers\
        	--mutation null\
 	--keep-corpus\
-       	--pair-file-list test_set\
+       	--pair-file-list test_files\
 	--output-dir "results.$PARTITION"  # Misnomer: this is the results dir.
