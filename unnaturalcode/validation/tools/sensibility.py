@@ -114,12 +114,14 @@ def vind_to_lexeme(vocab_id):
     from sensibility.vocabulary import VocabularyError
 
     ltype = language.vocabulary.to_text(vocab_id)
+    # Dummy positions; it moves the tokens to the insertion positions.
+    start = (1, 0, 0)
+
     # For some tokens, there's no source representation
     try:
         value = language.vocabulary.to_source_text(vocab_id)
+        end = (1, len(value), len(value))
     except VocabularyError:
         value = None
-    # Dummy positions; it moves the tokens to the insertion positions.
-    start = (1, 0, 0)
-    end = (1, len(value), len(value))
+        end = (1, 0, 0)
     return Lexeme.build(ltype, value, start, end)
