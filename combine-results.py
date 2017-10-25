@@ -35,14 +35,17 @@ if aggregate_db.exists():
 
 conn = sqlite3.connect(str(aggregate_db))
 conn.executescript(SCHEMA)
+
 for db_path in database_paths():
     print("attaching to", db_path)
     conn.execute("""
         ATTACH DATABASE ? AS other
     """, (str(db_path.absolute()),))
 
+    count, = conn.execute("SELECT COUNT(*) FROM other.results").fetchone()
+            
     # Copy everything over from the other database.
-    print("copying...")
+    print(" * Copying", count, "results")
     with conn:
         conn.execute(f"""
             INSERT INTO results ({COLUMNS})
