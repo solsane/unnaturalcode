@@ -30,11 +30,15 @@ from unnaturalcode.change import Change
 
 
 class Diff(object):
-    @staticmethod
-    def distill(s):
-        return [
-            tuple((l.type, l.value)) for l in s.lexemes
-            ]
+    def distill(self, s):
+        if self.only_type:
+            return [
+                l.type for l in s.lexemes
+                ]
+        else:
+            return [
+                tuple((l.type, l.value)) for l in s.lexemes
+                ]
     
     def opcode_to_change(self, opcode):
         op, i1, i2, j1, j2 = opcode
@@ -48,11 +52,13 @@ class Diff(object):
             self.to.lexemes[j1:j2]
             )
     
-    def __init__(self, from_, to):
+    def __init__(self, from_, to, only_type):
         assert isinstance(from_, Source)
         assert isinstance(to, Source)
         self.from_ = from_
         self.to = to
+        assert only_type is False
+        self.only_type = only_type
         self.from_lite = self.distill(from_)
         self.to_lite = self.distill(to)
         self.sm = difflib.SequenceMatcher(a=self.from_lite, b=self.to_lite,

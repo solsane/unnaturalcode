@@ -58,18 +58,23 @@ class ValidationMain(object):
                             help="Don't reset the corpus")
         parser.add_argument('-n', '--iterations', type=int, 
                             help='Number of times to iterate', default=50)
+        parser.add_argument('-N', '--n-training-files', type=int, 
+                            help='Number of training files to use', default=1e64)
         parser.add_argument('-o', '--output-dir', 
                             help='Location to store output files', default='.')
         parser.add_argument('-m', '--mutation', 
                             help='Mutation to use', 
-                            required=True, action='append')
+                            action='append')
         parser.add_argument('-r', '--retry-valid', action='store_true', 
                             help='Retry until a syntactically incorrect'
                             ' mutation is found')
         parser.add_argument('-p', '--pair-file-list', nargs='?',
-                            help='File containing comma-seperated pairs of'
-                                ' bad, good files to'
-                                ' test')
+                            help='File containing list of files in the format'
+                                ' after.java which have a matching before.java')
+        parser.add_argument('-P', '--pair-file-limit', type=int,
+                            help='Limit the number of pair files to '
+                            'this number of good files.',
+                            default=1e64)
         parser.add_argument('-x', '--tool', 
                             help='Tool to use (example: mitlm)', 
                             required=True, action='append')
@@ -93,7 +98,8 @@ class ValidationMain(object):
                                 train=args.train_file_list,
                                 keep=args.keep_corpus,
                                 results_dir=output_dir,
-                                type_only=args.discard_identifiers
+                                type_only=args.discard_identifiers,
+                                N=args.n_training_files,
                             )
         
         test = self.validation_test_class(
@@ -118,6 +124,7 @@ class ValidationMain(object):
         if args.pair_file_list:
             test.add_pair_tests(
                 test=args.pair_file_list,
+                limit=args.pair_file_limit,
                 tools=tools,
             )
         ERROR(type(test))

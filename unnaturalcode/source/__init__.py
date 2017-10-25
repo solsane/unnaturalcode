@@ -225,9 +225,10 @@ class Lexeme(tuple):
     
     def approx_equal(self, other, type_only):
         if type_only:
-            return self.type == other.type
+            return self.ltype == other.ltype
         else:
-            return self.type == other.type and self.value == other.value
+            #DEBUG("Checking the values...")
+            return (self.ltype == other.ltype) and (self.val == other.val)
 
 def lexemes_approx_equal(a, b, type_only):
     if len(a) != len(b):
@@ -335,8 +336,6 @@ class Source(object):
         assert not hasattr(self, 'line_char_indices')
         if self.linesep is None:
             self.guess_linesep()
-        if '\r' in self.text and '\n' not in self.text:
-            raise NotImplementedError("I don't understand mac format line endings!")
         lpos = 0
         lines = [0]
         while True:
@@ -446,6 +445,8 @@ class Source(object):
                             prev,
                             cur,
                             lines,
+                            space.count(self.linesep),
+                            self.linesep,
                             space
                         ]))
                     )
@@ -573,8 +574,12 @@ class Source(object):
         removed = self.lexemes[i:j]
         from_ = removed[-1].end
         to = removed[0].start
+        if from_.i < len(self.text):
+            after_text = self.text[from_.i:]
+        else:
+            after_text = ""
         self.text = (
-            self.text[:to.i] + self.text[from_.i:])
+            self.text[:to.i] + after_text)
         self.lexemes = (
             self.lexemes[:i]
             + [

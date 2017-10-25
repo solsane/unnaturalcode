@@ -1,0 +1,16 @@
+#!/bin/sh
+
+mkcmd() {
+	echo "./evaluate.sh $1 $2; read"
+}
+
+# thanks to https://unix.stackexchange.com/a/355165
+tmux\
+  new-session -s evaluation -d "$(mkcmd 0 0)" \; \
+  split-window                 "$(mkcmd 0 1)" \; \
+  split-window                 "$(mkcmd 2 0)" \; \
+  split-window                 "$(mkcmd 3 1)" \; \
+  split-window                 "$(mkcmd 4 0)" \; \
+  select-layout even-vertical
+
+tmux attach-session -d

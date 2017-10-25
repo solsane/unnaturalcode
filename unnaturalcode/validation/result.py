@@ -53,7 +53,7 @@ class Result(object):
             suggestion = suggestions[i] 
             if self.hit(suggestion):
                 self.rank = rank
-                DEBUG("%s rank %d" % (self.__class__.__name__, rank))
+                #DEBUG("%s rank %d" % (self.__class__.__name__, rank))
                 self.index = suggestion.token_index
                 self.start_line = suggestion.change_start[0]
                 self.start_col = suggestion.change_start[1]
@@ -128,7 +128,9 @@ class TrueFix(Result):
                                                     type_only=self.type_only
                                                     )
             if r:
-                assert suggestion.change_token[0] == self.vfile.change.change_token[0]
+                DEBUG("I think these are equal:" + repr([suggestion, self.vfile.change]))
+                assert suggestion.change_token[0] == self.vfile.change.reverse().change_token[0], (
+                    repr([suggestion, self.vfile.change]))
                 test = suggestion.do(self.vfile.bad_lexed)
                 errs = test.check_syntax()
                 if len(errs) != 0:

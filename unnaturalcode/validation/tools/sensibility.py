@@ -36,7 +36,8 @@ class Sensibility(Tool):
         assert kwargs.get('keep', True), "Will not delete LSTM models"
         assert not kwargs.get('train', False), "Cannot retrain LSTM models"
 
-        language.set(self.language)
+        # XXX: hardcodded!
+        language.set('java')
 
         # Allow for that dank dependency injection.
         if fixer is None:
@@ -114,11 +115,14 @@ def vind_to_lexeme(vocab_id):
     from sensibility.vocabulary import VocabularyError
 
     ltype = language.vocabulary.to_text(vocab_id)
+    # Dummy positions; it moves the tokens to the insertion positions.
+    start = (1, 0, 0)
+
     # For some tokens, there's no source representation
     try:
         value = language.vocabulary.to_source_text(vocab_id)
+        end = (1, len(value), len(value))
     except VocabularyError:
         value = None
-    # A dummy position; this is not really used.
-    dummy = (1, 0, None)
-    return Lexeme.build(ltype, value, dummy, dummy)
+        end = (1, 0, 0)
+    return Lexeme.build(ltype, value, start, end)

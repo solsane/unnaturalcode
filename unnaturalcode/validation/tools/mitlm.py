@@ -24,15 +24,18 @@ WARNING = logger.warning
 ERROR = logger.error
 CRITICAL = logger.critical
 
-import os
 import sys
+import os
 
 from unnaturalcode.validation.tools import Tool
-from unnaturalcode.sourceModel import sourceModel
+from unnaturalcode.ngram_model import NgramModel
+from unnaturalcode.dual_ngram_model import DualNgramModel
 from unnaturalcode.mitlmCorpus import mitlmCorpus
+from unnaturalcode.source import Lexeme, Position
 
 class Mitlm(Tool):
     name = "mitlm"
+    source_model = NgramModel
     def __init__(
             self,
             train,
@@ -42,33 +45,35 @@ class Mitlm(Tool):
         super(Mitlm, self).__init__(**kwargs)
         assert os.access(self.results_dir, os.X_OK & os.R_OK & os.W_OK)
         self.corpus_path = os.path.join(self.results_dir, 'validationCorpus')
-        self.corpus=mitlmCorpus(readCorpus=self.corpus_path,
-                                writeCorpus=self.corpus_path)
-        self.sm = sourceModel(cm=self.corpus, 
+        self.corpus=mitlmCorpus
+        self.sm = self.source_model(cm=self.corpus, 
                               language=self.language,
-                              type_only=self.type_only
+                              type_only=self.type_only,
+                              corpus_base=self.corpus_path
                               )
         if train:
             if keep:
                 pass
-            elif os.path.exists(self.corpus_path):
-                os.remove(self.corpus_path)
-            if keep:
-                pass
-            elif os.path.exists(self.corpus_path + ".uniqueTokens"):
-                os.remove(self.corpus_path + ".uniqueTokens")
+            else:
+                self.sm.delete_corpus()
             self.train_files(train)
     
     def train_files(self, train):
         self.file_names = open(train).read().splitlines()
         n_skipped = 0
         n_added = 0
-        for fi in self.file_names:
+        for i in range(0, len(self.file_names)):
+            if n_added >= self.N:
+                break
+            fi = self.file_names[i]
             try:
                 valid_fi = self.language_file(good_path=fi,
-                                              temp_dir=self.results_dir)
+                                              temp_dir=self.results_dir,
+                                              type_only=self.type_only)
                 INFO("Using %s for training." % (fi))
-                self.sm.trainLexemes(valid_fi.good_lexed.lexemes)
+                self.sm.train(valid_fi.good_lexed.lexemes)
+                if i % 100 == 0:
+                    self.sm.save_corpus()
                 n_added += 1
                 #if (len(valid_fi.lexed) > self.sm.windowSize) and testing:
                     #self.testFiles.append(valid_fi)
@@ -79,6 +84,14 @@ class Mitlm(Tool):
                 n_skipped += 1
                 #raise
         INFO("Using: %i, Skipped: %i" % (n_added, n_skipped))
+        unk = Lexeme(("<unk>", "", Position((1, 0, 0)), 
+                      Position((1, 0, 0)), "<unk>"))
+        self.sm.train([unk] * self.sm.n_unique_tokens())
+        self.sm.save_corpus()
     
     def query(self, bad_lexemes):
         return self.sm.fix(bad_lexemes)
+    
+class DualMitlm(Mitlm):
+    source_model = DualNgramModel
+    name = "dualmitlm"
