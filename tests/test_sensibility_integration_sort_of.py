@@ -107,6 +107,7 @@ class TestConvertEditToChange(unittest.TestCase):
 
 def kwargs():
     return dict(
+        N=1,
         language_file=JavaSource,
         results_dir="/tmp",
         train=False,
