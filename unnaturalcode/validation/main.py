@@ -127,8 +127,7 @@ class ValidationMain(object):
                 limit=args.pair_file_limit,
                 tools=tools,
             )
-        ERROR(type(test))
         test.resume()
-        ERROR(type(test))
         test.go()
+        INFO("All done.")
             

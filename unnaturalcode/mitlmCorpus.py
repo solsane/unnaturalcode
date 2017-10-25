@@ -107,4 +107,4 @@ class mitlmCorpus(object):
 
     def __del__(self):
         """I am a destructor, but release should be called explictly."""
-        assert not self.corpusFile, "Destructor called before release()"
+        self.closeCorpus()
