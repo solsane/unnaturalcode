@@ -49,15 +49,17 @@ class Task(object):
                 total_rrs[rt.db_name] = 0
         
     def tool_finished(self, tool):
-        return (self.conn.execute("SELECT COUNT(*) FROM results WHERE "
+        r = (self.conn.execute("SELECT COUNT(*) FROM results WHERE "
                 "good_file = ? AND tool = ? AND mutation = ?",
                 (self.validation_file.good_path,
-                    tool.name,
+                    tool.__class__.__name__,
                     self.mutation_name
                     )
                 )
             .fetchone()[0]
             )
+        #DEBUG("Resuming: %i" % r)
+        return r
         
     def ran_tool(self, tool):
         if self.tool_finished(tool) >= self.expected_per_tool:
@@ -143,7 +145,7 @@ class Task(object):
         self.conn.commit()
     
     def run(self):
-        for tool in self.tools:
+        for tool in self.remaining:
             self.run_tool(tool)
 
 class PairTask(Task):
