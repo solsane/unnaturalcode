@@ -65,7 +65,8 @@ class Sensibility(Tool):
             bad_source_code = bad_source.text.encode('UTF-8')
 
         # Ensure that we both agree the on the token stream.
-        n_sensibility_tokens = len(to_source_vector(bad_source_code))
+        n_sensibility_tokens = len(to_source_vector(bad_source_code,
+                                                    oov_to_unk=True))
         n_unnaturalcode_tokens = len(bad_source.lexemes)
         assert 'EOF' in bad_source.lexemes[-1].type, "Expected EOF as last token"
         # Sensibilty's token streams always omit the EOF, but UC keeps it (I think)

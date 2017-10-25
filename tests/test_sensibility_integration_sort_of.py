@@ -82,9 +82,32 @@ class TestConvertEditToChange(unittest.TestCase):
         assert change.to_start == 1
         assert change.to_end == 2
 
+    def test_oov(self):
+        """
+        Regression: do not crash when given OOV tokens.
+        """
+        before = b"interface Synchronizable {#}"
+        after = b"interface Synchronizable {}"
+
+        edit = determine_edit(before, after)
+        assert isinstance(edit, Deletion)
+
+        tool = Sensibility(fixer=MockFixer(edit), **kwargs())
+        fixes = tool.query(make_source(before))
+
+        assert len(fixes) == 1
+        change = fixes[0]
+        assert change.opcode == 'delete'
+        assert change.from_start == 3
+        assert change.from_end == 4
+        assert change.to_start == 3
+        assert change.to_end == 3
+        assert change.from_[0][0] == 'ERROR'
+
 
 def kwargs():
     return dict(
+        N=1,
         language_file=JavaSource,
         results_dir="/tmp",
         train=False,
