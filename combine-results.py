@@ -13,7 +13,8 @@ COLUMNS_NEAT = COLUMNS.strip().replace('id', 'id PRIMARY KEY', 1).replace(',', '
 
 SCHEMA = f"""
 CREATE TABLE results (
-  {COLUMNS_NEAT}
+  {COLUMNS_NEAT},
+  partition
 );
 """
 
@@ -26,7 +27,12 @@ def database_paths():
         db_path =  path / 'results.sqlite3'
         if not db_path.exists():
             print("WARNING:", db_path, "does not exist!")
-        yield db_path
+        try:
+            partition = int(path.suffix.lstrip('.'))
+        except ValueError:
+            print("Could not figure out partition:", path)
+            exit(-1)
+        yield partition, db_path
 
 
 if aggregate_db.exists():
@@ -36,7 +42,7 @@ if aggregate_db.exists():
 conn = sqlite3.connect(str(aggregate_db))
 conn.executescript(SCHEMA)
 
-for db_path in database_paths():
+for partition, db_path in database_paths():
     print("attaching to", db_path)
     conn.execute("""
         ATTACH DATABASE ? AS other
@@ -48,9 +54,9 @@ for db_path in database_paths():
     print(" * Copying", count, "results")
     with conn:
         conn.execute(f"""
-            INSERT INTO results ({COLUMNS})
-            SELECT {COLUMNS} FROM other.results
-        """)
+            INSERT INTO results ({COLUMNS}, partition)
+            SELECT {COLUMNS}, ? FROM other.results
+        """, (partition,))
 
     conn.execute("""
         DETACH DATABASE other
