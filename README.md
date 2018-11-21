@@ -74,7 +74,7 @@ specified.
 
 &copy; 2010-2012 Abram Hindle, Prem Devanbu, Earl T. Barr, Daryl Posnett
 
-&copy; 2012-2014 Joshua Charles Campbell, Abram Hindle, Alex Wilson
+&copy; 2012-2014 Hazel Victoria Campbell, Abram Hindle, Alex Wilson
 
 UnnaturalCode is free software: you can redistribute it and/or modify it under
 the terms of the GNU Affero General Public License as published by the Free
