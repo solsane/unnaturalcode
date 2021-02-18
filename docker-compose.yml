@@ -1,0 +1,11 @@
+
+services:
+  unnaturalcode:
+    build:
+      context: .
+      dockerfile: Dockerfile
+  
+  container_name: unnaturalcode
+
+  depends_on:
+    - 
