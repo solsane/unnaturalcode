@@ -2,8 +2,6 @@ FROM python:2
 
 LABEL MAINTAINER="Aiden Rutter <arutter@utk.edu>"
 
-RUN add-apt-repository universe && apt-get update && apt-get install libzmq3-dev automake autoconf gfortran python-virtualenv swig
-RUN python -m pip install --upgrade pip
 # create user/group
 # RUN groupadd -r unnaturalcode && useradd --no-log-init -r -g unnaturalcode unnaturalcode
 
@@ -12,7 +10,13 @@ RUN python -m pip install --upgrade pip
 # incorporate any local changes on build at least
 COPY . /work
 WORKDIR /work
-RUN /usr/bin/yes | pip install -e /work
+
+RUN apt-get -y update && apt-get -y install libzmq3-dev automake autoconf gfortran python-virtualenv swig build-essential
+
+# symptom: file not found in makefile (pymitlm/mitlm/.libs)
+# try cleaning files b4 copy?
+# problem: .dockerignore doesn't acct for the other .gitignore files
+RUN pip install /work
 
 # env
 ENV ESTIMATENGRAM="/usr/local/bin/estimate-ngram"
