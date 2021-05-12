@@ -6,7 +6,7 @@ LABEL MAINTAINER="Aiden Rutter <arutter@utk.edu>"
 # RUN groupadd -r unnaturalcode && useradd --no-log-init -r -g unnaturalcode unnaturalcode
 
 # make a copy of the project
-# TODO: cloning from git might be more appropriate but I also wanted to 
+# TODO: cloning from git might be more appropriate but I also wanted to
 # incorporate any local changes on build at least
 COPY . /work
 WORKDIR /work
@@ -16,6 +16,7 @@ RUN apt-get -y update && apt-get -y install libzmq3-dev automake autoconf gfortr
 # symptom: file not found in makefile (pymitlm/mitlm/.libs)
 # try cleaning files b4 copy?
 # problem: .dockerignore doesn't acct for the other .gitignore files
+# RUN ls
 RUN pip install /work
 
 # env
@@ -27,6 +28,6 @@ ENV LD_LIBRARY_PATH="/usr/local/lib:$LD_LIBRARY_PATH"
 # add unnaturalcode to path
 EXPOSE 5000
 ENTRYPOINT [ "python", "-m", "unnaturalcode.http" ]
-
+# ENTRYPOINT [ "/bin/bash" ]
 # run the tests
-CMD python -m pytest .
+# CMD python -m pytest .
